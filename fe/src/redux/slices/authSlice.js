@@ -24,8 +24,13 @@ const authSlice = createSlice({
       state.refreshToken = null;
       state.isLogged = false;
     },
+    setSurveyCompleted: (state, action) => {
+      if (state.user) {
+        state.user.hasCompletedSurvey = action.payload;
+      }
+    },
   },
 });
 
-export const { setCredentials, logOut } = authSlice.actions;
+export const { setCredentials, logOut, setSurveyCompleted } = authSlice.actions;
 export default authSlice.reducer;

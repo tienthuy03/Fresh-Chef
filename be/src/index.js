@@ -7,6 +7,7 @@ const { sequelize } = require('./models');
 const authRoutes = require('./routes/auth');
 const recipeRoutes = require('./routes/recipes');
 const communityRoutes = require('./routes/community');
+const preferenceRoutes = require('./routes/preferences');
 
 dotenv.config();
 
@@ -51,6 +52,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 app.use('/api/auth', authRoutes);
 app.use('/api/recipes', recipeRoutes);
 app.use('/api/community', communityRoutes);
+app.use('/api/preferences', preferenceRoutes);
 
 // Database Sync & Server Start
 sequelize.sync().then(() => {

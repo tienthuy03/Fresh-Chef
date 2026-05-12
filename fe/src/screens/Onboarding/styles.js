@@ -27,7 +27,7 @@ export default StyleSheet.create({
     marginBottom: Spacing.xxl,
   },
   placeholderImage: {
-    fontSize: 80,
+    fontSize: 160,
   },
   logoImage: {
     width: '100%',
@@ -69,9 +69,9 @@ export default StyleSheet.create({
   },
   nextButton: {
     backgroundColor: Colors.primary,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: Radius.round,
+    paddingVertical: Spacing.sm,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,

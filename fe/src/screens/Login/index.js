@@ -58,7 +58,7 @@ const LoginScreen = ({ navigation }) => {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <Text style={styles.logo}>RecipeApp</Text>
+          <Text style={styles.logo}>{t('app_name')}</Text>
           <Text style={styles.subtitle}>{t('login_subtitle')}</Text>
         </View>
 

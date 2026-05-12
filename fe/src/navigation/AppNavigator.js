@@ -9,10 +9,13 @@ import HomeScreen from '@screens/Home';
 import OnboardingScreen from '@screens/Onboarding';
 import PreferenceQuizScreen from '@screens/PreferenceQuiz';
 
+import MainTabNavigator from './MainTabNavigator';
+
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
-  const { isLogged } = useSelector((state) => state.auth);
+  const { isLogged, user } = useSelector((state) => state.auth);
+  const hasCompletedSurvey = user?.HasCompletedSurvey;
 
   return (
     <NavigationContainer>
@@ -30,7 +33,11 @@ const AppNavigator = () => {
           </>
         ) : (
           // App Stack
-          <Stack.Screen name="Home" component={HomeScreen} />
+          !hasCompletedSurvey ? (
+            <Stack.Screen name="PreferenceQuiz" component={PreferenceQuizScreen} />
+          ) : (
+            <Stack.Screen name="Main" component={MainTabNavigator} />
+          )
         )}
       </Stack.Navigator>
     </NavigationContainer>

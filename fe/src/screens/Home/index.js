@@ -18,9 +18,9 @@ const HomeScreen = () => {
   };
 
   const handleTestError = () => {
-    dispatch(showError({ 
-      title: 'Connection Lost', 
-      content: 'Please check your internet connection and try again.' 
+    dispatch(showError({
+      title: t('connection_lost'),
+      content: t('connection_lost_msg'),
     }));
   };
 
@@ -31,19 +31,17 @@ const HomeScreen = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{t('welcome')}</Text>
-      
+
       <TouchableOpacity style={styles.button} onPress={handleTestLoading}>
-        <Text style={styles.buttonText}>Test Loading (2s)</Text>
+        <Text style={styles.buttonText}>{t('test_loading')}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={[styles.button, { backgroundColor: Colors.error }]} onPress={handleTestError}>
-        <Text style={styles.buttonText}>Test Error</Text>
+        <Text style={styles.buttonText}>{t('test_error')}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={[styles.button, { backgroundColor: Colors.secondary }]} onPress={toggleLanguage}>
-        <Text style={styles.buttonText}>
-          {i18n.language === 'vi' ? 'Switch to English' : 'Đổi sang Tiếng Việt'}
-        </Text>
+        <Text style={styles.buttonText}>{t('switch_language')}</Text>
       </TouchableOpacity>
     </View>
   );

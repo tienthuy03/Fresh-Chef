@@ -60,7 +60,8 @@ router.post('/register', async (req, res) => {
       password: hashedPassword, 
       email, 
       fullName,
-      preferences: preferences ? JSON.stringify(preferences) : null 
+      preferences: preferences ? JSON.stringify(preferences) : null,
+      hasCompletedSurvey: !!preferences
     });
 
     res.status(201).json({
@@ -196,7 +197,8 @@ router.post('/login', async (req, res) => {
           Id: user.id,
           Username: user.username,
           FullName: user.fullName || '',
-          Preferences: user.preferences ? JSON.parse(user.preferences) : null
+          Preferences: user.preferences ? JSON.parse(user.preferences) : null,
+          HasCompletedSurvey: user.hasCompletedSurvey
         }
       },
       Meta: null
