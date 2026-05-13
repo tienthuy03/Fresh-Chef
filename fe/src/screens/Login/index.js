@@ -34,7 +34,7 @@ const LoginScreen = ({ navigation }) => {
       
       if (response.Success) {
         dispatch(setCredentials({
-          user: response.Data.user,
+          user: response.Data.User,
           token: response.Data.Token || response.Data.token,
           refreshToken: response.Data.RefreshToken || response.Data.refreshToken
         }));

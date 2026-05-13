@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, ActivityIndicator, Modal, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
-import { hideError } from '../../redux/slices/uiSlice';
+import { hideAlert } from '../../redux/slices/uiSlice';
 import { Colors } from '../../constants/Colors';
 import { Spacing, Radius } from '../../constants/Spacing';
 import { FontSize } from '../../constants/Typography';
@@ -10,90 +10,92 @@ import { useTranslation } from 'react-i18next';
 const GlobalUIContainer = () => {
   const { t } = useTranslation();
   const dispatch = useDispatch();
-  const { isLoading, error } = useSelector((state) => state.ui);
+  const { isLoading, alert } = useSelector((state) => state.ui);
+
+  const isVisible = isLoading || alert.visible;
 
   return (
-    <>
-      {/* Loading Modal */}
-      <Modal transparent visible={isLoading} animationType="fade">
-        <View style={styles.loadingOverlay}>
-          <View style={styles.loadingCard}>
+    <Modal transparent visible={isVisible} animationType="fade">
+      <View style={styles.overlay}>
+        {isLoading ? (
+          <View style={styles.card}>
             <ActivityIndicator size="large" color={Colors.primary} />
             <Text style={styles.loadingText}>{t('loading')}</Text>
           </View>
-        </View>
-      </Modal>
-
-      {/* Error Modal */}
-      <Modal transparent visible={error.visible} animationType="slide">
-        <View style={styles.errorOverlay}>
-          <View style={styles.errorCard}>
-            <Text style={styles.errorTitle}>{error.title || t('error_title')}</Text>
-            <Text style={styles.errorContent}>{error.content}</Text>
+        ) : (
+          <View style={styles.card}>
+            <Text style={[
+              styles.title, 
+              alert.type === 'success' && { color: Colors.success },
+              alert.type === 'error' && { color: Colors.error }
+            ]}>
+              {alert.title || (alert.type === 'error' ? t('error_title') : t('success_title'))}
+            </Text>
+            <Text style={styles.content}>{alert.content}</Text>
             <TouchableOpacity 
-              style={styles.errorButton} 
-              onPress={() => dispatch(hideError())}
+              style={[
+                styles.button,
+                alert.type === 'success' && { backgroundColor: Colors.success },
+                alert.type === 'error' && { backgroundColor: Colors.error }
+              ]} 
+              onPress={() => dispatch(hideAlert())}
             >
-              <Text style={styles.errorButtonText}>{t('ok')}</Text>
+              <Text style={styles.buttonText}>{t('ok')}</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
-    </>
+        )}
+      </View>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  loadingOverlay: {
+  overlay: {
     flex: 1,
     backgroundColor: Colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: Spacing.lg,
   },
-  loadingCard: {
+  card: {
     backgroundColor: Colors.surface,
     padding: Spacing.lg,
-    borderRadius: Radius.md,
+    borderRadius: Radius.lg,
+    width: '100%',
+    maxWidth: 340,
     alignItems: 'center',
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
   },
   loadingText: {
     marginTop: Spacing.sm,
     color: Colors.text,
     fontSize: FontSize.md,
   },
-  errorOverlay: {
-    flex: 1,
-    backgroundColor: Colors.overlay,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.lg,
-  },
-  errorCard: {
-    backgroundColor: Colors.surface,
-    padding: Spacing.lg,
-    borderRadius: Radius.lg,
-    width: '100%',
-    alignItems: 'center',
-  },
-  errorTitle: {
+  title: {
     fontSize: FontSize.lg,
     fontWeight: 'bold',
-    color: Colors.error,
     marginBottom: Spacing.sm,
+    textAlign: 'center',
   },
-  errorContent: {
+  content: {
     fontSize: FontSize.md,
     color: Colors.text,
     textAlign: 'center',
     marginBottom: Spacing.lg,
   },
-  errorButton: {
+  button: {
     backgroundColor: Colors.primary,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.xl,
     borderRadius: Radius.round,
+    width: '100%',
+    alignItems: 'center',
   },
-  errorButtonText: {
+  buttonText: {
     color: Colors.white,
     fontWeight: '600',
     fontSize: FontSize.md,

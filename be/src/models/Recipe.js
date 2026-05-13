@@ -33,6 +33,13 @@ const Recipe = sequelize.define('Recipe', {
   cookpad_id: {
     type: DataTypes.STRING,
     unique: true,
+  },
+  category: {
+    type: DataTypes.STRING,
+  },
+  rating: {
+    type: DataTypes.FLOAT,
+    defaultValue: 4.5,
   }
 });
 

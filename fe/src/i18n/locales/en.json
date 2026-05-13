@@ -56,5 +56,17 @@
   "switch_language": "Đổi sang Tiếng Việt",
   "connection_lost": "Connection Lost",
   "connection_lost_msg": "Please check your internet connection and try again.",
-  "app_name": "Fresh Chef"
+  "app_name": "Fresh Chef",
+  "hi_there": "Hi there",
+  "what_to_cook_today": "What to cook today?",
+  "search_recipes_placeholder": "Search recipes, ingredients...",
+  "categories": "Categories",
+  "see_all": "See All",
+  "featured_recipes": "Featured Recipes",
+  "explore": "Explore",
+  "search_placeholder": "Search for recipes",
+  "trending_now": "Trending Now",
+  "browse_by_cuisine": "Browse by Cuisine",
+  "community": "Community",
+  "cookbook": "Cookbook"
 }

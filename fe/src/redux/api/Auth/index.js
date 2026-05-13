@@ -11,6 +11,8 @@ export class AuthEndPoint {
   static logout = '/auth/logout';
   static changePassword = '/auth/change-password';
   static preferences = '/auth/preferences';
+  static me = '/auth/me';
+  static updateProfile = '/auth/profile';
 }
 
 /**
@@ -31,8 +33,8 @@ export const authApi = apiService.injectEndpoints({
         Data: {
           ...response.Data,
           User: {
-            ...response.Data?.user,
-            ID: response.Data?.user?.Id || response.Data?.user?.id,
+            ...response.Data?.User,
+            ID: response.Data?.User?.Id || response.Data?.User?.id,
           },
         },
       }),
@@ -71,6 +73,19 @@ export const authApi = apiService.injectEndpoints({
         body: { preferences },
       }),
     }),
+    getMe: build.query({
+      query: () => ({
+        url: AuthEndPoint.me,
+        method: 'GET',
+      }),
+    }),
+    updateProfile: build.mutation({
+      query: (data) => ({
+        url: AuthEndPoint.updateProfile,
+        method: 'PUT',
+        body: data,
+      }),
+    }),
   }),
 });
 
@@ -79,5 +94,7 @@ export const {
   useRegisterMutation, 
   useLogoutMutation, 
   useChangePasswordMutation,
-  useUpdatePreferencesMutation
+  useUpdatePreferencesMutation,
+  useGetMeQuery,
+  useUpdateProfileMutation
 } = authApi;

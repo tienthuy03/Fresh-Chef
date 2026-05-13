@@ -1,9 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const Review = require('../models/Review');
-const User = require('../models/User');
-const Recipe = require('../models/Recipe');
+const { Review, User, Recipe, Follow } = require('../models');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
@@ -136,6 +134,42 @@ router.get('/recipes/:recipeId/reviews', async (req, res) => {
         images: rev.images ? JSON.parse(rev.images) : []
       }))
     });
+  } catch (err) {
+    res.status(500).json({ Success: false, Message: 'Server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/community/follow/{userId}:
+ *   post:
+ *     summary: Follow/Unfollow a user
+ *     tags: [Community]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post('/follow/:userId', auth, async (req, res) => {
+  try {
+    const targetUserId = req.params.userId;
+    const currentUserId = req.user.id;
+
+    if (targetUserId == currentUserId) {
+      return res.status(400).json({ Success: false, Message: 'You cannot follow yourself' });
+    }
+
+    const userToFollow = await User.findByPk(targetUserId);
+    const currentUser = await User.findByPk(currentUserId);
+
+    if (!userToFollow) return res.status(404).json({ Success: false, Message: 'User not found' });
+
+    const isFollowing = await currentUser.hasFollowing(userToFollow);
+    if (isFollowing) {
+      await currentUser.removeFollowing(userToFollow);
+      res.json({ Success: true, Message: 'Unfollowed user', Following: false });
+    } else {
+      await currentUser.addFollowing(userToFollow);
+      res.json({ Success: true, Message: 'Followed user', Following: true });
+    }
   } catch (err) {
     res.status(500).json({ Success: false, Message: 'Server error' });
   }

@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth');
 const recipeRoutes = require('./routes/recipes');
 const communityRoutes = require('./routes/community');
 const preferenceRoutes = require('./routes/preferences');
+const shoppingListRoutes = require('./routes/shoppingList');
 
 dotenv.config();
 
@@ -53,10 +54,21 @@ app.use('/api/auth', authRoutes);
 app.use('/api/recipes', recipeRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/preferences', preferenceRoutes);
+app.use('/api/shopping-list', shoppingListRoutes);
 
 // Database Sync & Server Start
-sequelize.sync().then(() => {
+sequelize.sync().then(async () => {
   console.log('Database connected and synced');
+  
+  // Seed data if empty
+  const { Recipe } = require('./models');
+  const count = await Recipe.count();
+  if (count === 0) {
+    console.log('Database empty, seeding initial recipes...');
+    const { scrapeRecipes } = require('./services/scraper');
+    // Scrape background
+    ['Món gà', 'Món bò', 'Món cá', 'Salad'].forEach(keyword => scrapeRecipes(keyword));
+  }
   app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
     console.log(`Swagger docs available at http://localhost:${PORT}/api-docs`);

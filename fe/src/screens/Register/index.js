@@ -9,7 +9,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useDispatch } from 'react-redux';
-import { showLoading, hideLoading, showError } from '@redux/slices/uiSlice';
+import { showLoading, hideLoading, showError, showAlert } from '@redux/slices/uiSlice';
 import { useRegisterMutation } from '@redux/api/Auth';
 import { useTranslation } from 'react-i18next';
 import styles from './styles';
@@ -50,9 +50,10 @@ const RegisterScreen = ({ navigation, route }) => {
       }).unwrap();
       
       if (response.Success) {
-        dispatch(showError({ 
+        dispatch(showAlert({ 
           title: t('success_title'), 
-          content: t('register_success_msg') 
+          content: t('register_success_msg'),
+          type: 'success'
         }));
         navigation.navigate('Login');
       } else {

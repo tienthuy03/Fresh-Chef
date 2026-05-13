@@ -1,9 +1,96 @@
 const express = require('express');
-const Recipe = require('../models/Recipe');
+const { Recipe, User, sequelize } = require('../models');
+const { Op, Sequelize } = require('sequelize');
 const { scrapeRecipes } = require('../services/scraper');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
+
+/**
+ * @swagger
+ * /api/recipes/search:
+ *   get:
+ *     summary: Search recipes
+ *     tags: [Recipes]
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of matching recipes
+ */
+router.get('/search', async (req, res) => {
+  const { q } = req.query;
+  const recipes = await Recipe.findAll({
+    where: {
+      [Op.or]: [
+        { title: { [Op.like]: `%${q}%` } },
+        { category: { [Op.like]: `%${q}%` } }
+      ]
+    }
+  });
+  res.json({ Success: true, Data: recipes });
+});
+
+/**
+ * @swagger
+ * /api/recipes/categories:
+ *   get:
+ *     summary: Get all recipe categories
+ *     tags: [Recipes]
+ *     responses:
+ *       200:
+ *         description: List of categories
+ */
+router.get('/categories', async (req, res) => {
+  const categories = await Recipe.findAll({
+    attributes: [[Sequelize.fn('DISTINCT', Sequelize.col('category')), 'category']],
+  });
+  res.json({ Success: true, Data: categories.map(c => c.category).filter(Boolean) });
+});
+
+/**
+ * @swagger
+ * /api/recipes/trending:
+ *   get:
+ *     summary: Get trending recipes
+ *     tags: [Recipes]
+ *     responses:
+ *       200:
+ *         description: List of trending recipes
+ */
+router.get('/trending', async (req, res) => {
+  // Mock trending logic: just return 20 recipes
+  const recipes = await Recipe.findAll({ 
+    limit: 20,
+    order: Sequelize.literal('RANDOM()')
+  });
+  res.json({ Success: true, Data: recipes });
+});
+
+/**
+ * @swagger
+ * /api/recipes/favorites:
+ *   get:
+ *     summary: Get user's favorite recipes
+ *     tags: [Recipes]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of favorite recipes
+ */
+router.get('/favorites', auth, async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id);
+    const favorites = await user.getFavoriteRecipes();
+    res.json({ Success: true, Data: favorites });
+  } catch (err) {
+    res.status(500).json({ Success: false, Message: 'Server error' });
+  }
+});
 
 /**
  * @swagger
@@ -17,14 +104,17 @@ const router = express.Router();
  */
 router.get('/', async (req, res) => {
   try {
-    const recipes = await Recipe.findAll();
-    res.json(recipes.map(r => ({
-      ...r.toJSON(),
-      ingredients: JSON.parse(r.ingredients),
-      steps: JSON.parse(r.steps)
-    })));
+    const recipes = await Recipe.findAll({ order: Sequelize.literal('RANDOM()') });
+    res.json({
+      Success: true,
+      Data: recipes.map(r => ({
+        ...r.toJSON(),
+        ingredients: JSON.parse(r.ingredients),
+        steps: JSON.parse(r.steps)
+      }))
+    });
   } catch (err) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ Success: false, Message: 'Server error', Errors: [err.message] });
   }
 });
 
@@ -49,15 +139,18 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const recipe = await Recipe.findByPk(req.params.id);
-    if (!recipe) return res.status(404).json({ message: 'Recipe not found' });
+    if (!recipe) return res.status(404).json({ Success: false, Message: 'Recipe not found' });
     
     res.json({
-      ...recipe.toJSON(),
-      ingredients: JSON.parse(recipe.ingredients),
-      steps: JSON.parse(recipe.steps)
+      Success: true,
+      Data: {
+        ...recipe.toJSON(),
+        ingredients: JSON.parse(recipe.ingredients),
+        steps: JSON.parse(recipe.steps)
+      }
     });
   } catch (err) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ Success: false, Message: 'Server error', Errors: [err.message] });
   }
 });
 
@@ -65,10 +158,8 @@ router.get('/:id', async (req, res) => {
  * @swagger
  * /api/recipes/sync:
  *   post:
- *     summary: Sync recipes from Cookpad (Auth required)
+ *     summary: Sync recipes from Cookpad (Public)
  *     tags: [Recipes]
- *     security:
- *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -82,14 +173,14 @@ router.get('/:id', async (req, res) => {
  *       200:
  *         description: Sync started
  */
-router.post('/sync', auth, async (req, res) => {
+router.post('/sync', async (req, res) => {
   const { keyword } = req.body;
-  if (!keyword) return res.status(400).json({ message: 'Keyword is required' });
+  if (!keyword) return res.status(400).json({ Success: false, Message: 'Keyword is required' });
 
   // Run in background
   scrapeRecipes(keyword);
 
-  res.json({ message: `Sync started for keyword: ${keyword}` });
+  res.json({ Success: true, Message: `Sync started for keyword: ${keyword}` });
 });
 
 /**
@@ -122,12 +213,10 @@ router.post('/suggest', auth, async (req, res) => {
     const { ingredients = [], maxTime } = req.body;
     const allRecipes = await Recipe.findAll();
     
-    // Simple matching algorithm
     const suggested = allRecipes.map(recipe => {
       const recipeIngredients = JSON.parse(recipe.ingredients);
       let matchCount = 0;
       
-      // Check how many input ingredients are in the recipe
       ingredients.forEach(inputIng => {
         const found = recipeIngredients.find(ri => 
           ri.name.toLowerCase().includes(inputIng.toLowerCase())
@@ -135,7 +224,6 @@ router.post('/suggest', auth, async (req, res) => {
         if (found) matchCount++;
       });
 
-      // Calculate score (0 to 1)
       const score = ingredients.length > 0 ? matchCount / ingredients.length : 0;
       
       return {
@@ -146,12 +234,12 @@ router.post('/suggest', auth, async (req, res) => {
         matchCount: matchCount
       };
     })
-    .filter(r => r.matchCount > 0) // Only return recipes with at least one match
-    .sort((a, b) => b.matchScore - a.matchScore); // Rank by score
+    .filter(r => r.matchCount > 0)
+    .sort((a, b) => b.matchScore - a.matchScore);
 
     res.json({
       Success: true,
-      Data: suggested.slice(0, 10) // Return top 10
+      Data: suggested.slice(0, 10)
     });
   } catch (err) {
     res.status(500).json({ Success: false, Message: 'Server error', Errors: [err.message] });
@@ -191,6 +279,42 @@ router.get('/:id/shopping-list', async (req, res) => {
         }))
       }
     });
+  } catch (err) {
+    res.status(500).json({ Success: false, Message: 'Server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/recipes/{id}/favorite:
+ *   post:
+ *     summary: Toggle favorite status for a recipe
+ *     tags: [Recipes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Favorite toggled
+ */
+router.post('/:id/favorite', auth, async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id);
+    const recipe = await Recipe.findByPk(req.params.id);
+
+    if (!recipe) return res.status(404).json({ Success: false, Message: 'Recipe not found' });
+
+    const hasFavorite = await user.hasFavoriteRecipe(recipe);
+    if (hasFavorite) {
+      await user.removeFavoriteRecipe(recipe);
+      res.json({ Success: true, Message: 'Removed from favorites', Favorited: false });
+    } else {
+      await user.addFavoriteRecipe(recipe);
+      res.json({ Success: true, Message: 'Added to favorites', Favorited: true });
+    }
   } catch (err) {
     res.status(500).json({ Success: false, Message: 'Server error' });
   }

@@ -23,6 +23,18 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  avatar: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  bio: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  sharedRecipesCount: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
   preferences: {
     type: DataTypes.TEXT, // Store as JSON string
     allowNull: true,

@@ -2,10 +2,11 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   isLoading: false,
-  error: {
+  alert: {
     visible: false,
     title: '',
     content: '',
+    type: 'error', // 'error', 'success', 'info'
   },
 };
 
@@ -20,21 +21,34 @@ const uiSlice = createSlice({
       state.isLoading = false;
     },
     showError: (state, action) => {
-      state.error = {
+      state.alert = {
         visible: true,
         title: action.payload.title || 'Error',
         content: action.payload.content || 'Something went wrong',
+        type: 'error',
       };
     },
-    hideError: (state) => {
-      state.error = {
+    showAlert: (state, action) => {
+      state.alert = {
+        visible: true,
+        title: action.payload.title || '',
+        content: action.payload.content || '',
+        type: action.payload.type || 'info',
+      };
+    },
+    hideAlert: (state) => {
+      state.alert = {
         visible: false,
         title: '',
         content: '',
+        type: 'info',
       };
+    },
+    hideError: (state) => {
+      state.alert.visible = false;
     },
   },
 });
 
-export const { showLoading, hideLoading, showError, hideError } = uiSlice.actions;
+export const { showLoading, hideLoading, showError, hideError, showAlert, hideAlert } = uiSlice.actions;
 export default uiSlice.reducer;

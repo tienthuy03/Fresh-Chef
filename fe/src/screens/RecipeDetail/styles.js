@@ -1,0 +1,135 @@
+import { StyleSheet, Platform } from 'react-native';
+import { Colors } from '@constants/Colors';
+
+export default StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.white,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 15,
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.text,
+  },
+  backButton: {
+    padding: 5,
+  },
+  content: {
+    padding: 20,
+    paddingBottom: 100,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginBottom: 15,
+  },
+  metaContainer: {
+    flexDirection: 'row',
+    marginBottom: 25,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 20,
+  },
+  metaText: {
+    marginLeft: 5,
+    fontSize: 14,
+    color: Colors.textLight,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginBottom: 15,
+    marginTop: 10,
+  },
+  ingredientItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  ingredientDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.primary,
+    marginRight: 10,
+  },
+  ingredientText: {
+    fontSize: 16,
+    color: Colors.text,
+    flex: 1,
+  },
+  stepContainer: {
+    marginBottom: 25,
+    flexDirection: 'column',
+  },
+  stepHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  stepNumberContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+    marginTop: 2,
+  },
+  stepNumber: {
+    color: Colors.primary,
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  stepText: {
+    flex: 1,
+    fontSize: 16,
+    color: Colors.text,
+    lineHeight: 24,
+  },
+  stepImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 15,
+    marginTop: 15,
+    backgroundColor: '#F0F0F0',
+  },
+  shoppingListButton: {
+    backgroundColor: Colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 15,
+    marginBottom: 20,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  shoppingListButtonText: {
+    color: Colors.white,
+    fontWeight: 'bold',
+    marginLeft: 10,
+    fontSize: 16,
+  },
+});

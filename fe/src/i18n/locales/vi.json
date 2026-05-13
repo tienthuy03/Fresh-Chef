@@ -56,5 +56,17 @@
   "switch_language": "Switch to English",
   "connection_lost": "Mất kết nối",
   "connection_lost_msg": "Vui lòng kiểm tra kết nối internet và thử lại.",
-  "app_name": "Fresh Chef"
+  "app_name": "Fresh Chef",
+  "hi_there": "Chào bạn",
+  "what_to_cook_today": "Hôm nay nấu gì?",
+  "search_recipes_placeholder": "Tìm kiếm món ăn, nguyên liệu...",
+  "categories": "Danh mục",
+  "see_all": "Tất cả",
+  "featured_recipes": "Món ngon nổi bật",
+  "explore": "Khám phá",
+  "search_placeholder": "Tìm công thức nấu ăn",
+  "trending_now": "Xu hướng",
+  "browse_by_cuisine": "Phong cách ẩm thực",
+  "community": "Cộng đồng",
+  "cookbook": "Sổ tay nấu ăn"
 }

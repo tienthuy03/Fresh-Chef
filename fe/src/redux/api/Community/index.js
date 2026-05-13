@@ -8,6 +8,7 @@ import { apiService } from '../../apiService';
 export class CommunityEndPoint {
   static feed = '/community/feed';
   static postReview = '/community/reviews';
+  static follow = (userId) => `/community/follow/${userId}`;
 }
 
 /**
@@ -32,7 +33,14 @@ export const communityApi = apiService.injectEndpoints({
         // multipart/form-data is automatically handled by fetchBaseQuery if body is FormData
       }),
     }),
+    followUser: build.mutation({
+      query: (userId) => ({
+        url: CommunityEndPoint.follow(userId),
+        method: 'POST',
+      }),
+      invalidatesTags: ['Follows'],
+    }),
   }),
 });
 
-export const { useGetFeedQuery, usePostReviewMutation } = communityApi;
+export const { useGetFeedQuery, usePostReviewMutation, useFollowUserMutation } = communityApi;

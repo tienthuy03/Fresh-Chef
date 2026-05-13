@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { User, Favorite, Follow } = require('../models');
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
@@ -39,8 +39,8 @@ const router = express.Router();
 router.post('/register', async (req, res) => {
   let { username, password, email, fullName, preferences } = req.body;
   
-  // Nếu email là chuỗi rỗng, đổi thành null để tránh lỗi validation isEmail
-  if (email === '') email = null;
+    // Nếu email là chuỗi rỗng hoặc undefined, đổi thành null để tránh lỗi validation unique/isEmail
+    const finalEmail = (email === '' || !email) ? null : email;
 
   try {
     let user = await User.findOne({ where: { username } });
@@ -49,16 +49,25 @@ router.post('/register', async (req, res) => {
         Success: false,
         Message: 'Username already exists',
         Errors: ['Username already exists'],
-        Data: null,
-        Meta: null
       });
+    }
+
+    if (finalEmail) {
+      const emailUser = await User.findOne({ where: { email: finalEmail } });
+      if (emailUser) {
+        return res.status(400).json({
+          Success: false,
+          Message: 'Email already exists',
+          Errors: ['Email already exists'],
+        });
+      }
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     user = await User.create({ 
       username, 
       password: hashedPassword, 
-      email, 
+      email: finalEmail, 
       fullName,
       preferences: preferences ? JSON.stringify(preferences) : null,
       hasCompletedSurvey: !!preferences
@@ -67,26 +76,21 @@ router.post('/register', async (req, res) => {
     res.status(201).json({
       Success: true,
       Message: 'User registered successfully',
-      Errors: [],
       Data: {
         User: {
           Id: user.id,
           Username: user.username,
           FullName: user.fullName || '',
-          Preferences: user.preferences ? JSON.parse(user.preferences) : null
         }
       },
-      Meta: null
     });
   } catch (err) {
-    // Trả về lỗi chi tiết hơn từ Sequelize (ví dụ: lỗi định dạng email)
+    console.error('Registration error:', err);
     const errors = err.errors ? err.errors.map(e => e.message) : [err.message];
-    res.status(500).json({
+    res.status(400).json({ // Chuyển thành 400 để Frontend hiển thị được nội dung lỗi
       Success: false,
-      Message: 'Server error',
+      Message: errors[0] || 'Registration failed',
       Errors: errors,
-      Data: null,
-      Meta: null
     });
   }
 });
@@ -152,9 +156,11 @@ router.post('/register', async (req, res) => {
  */
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
+  console.log(`Login attempt for username: ${username}`);
   try {
     const user = await User.findOne({ where: { username } });
     if (!user) {
+      console.log(`Login failed: User ${username} not found`);
       return res.status(400).json({
         Success: false,
         Message: 'Invalid credentials',
@@ -166,6 +172,7 @@ router.post('/login', async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      console.log(`Login failed: Password mismatch for user ${username}`);
       return res.status(400).json({
         Success: false,
         Message: 'Invalid credentials',
@@ -379,6 +386,99 @@ router.put('/preferences', authMiddleware, async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ Success: false, Message: 'Server error', Errors: [err.message] });
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Get current user profile
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile details
+ */
+router.get('/me', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: ['password'] }
+    });
+
+    if (!user) return res.status(404).json({ Success: false, Message: 'User not found' });
+
+    // Fetch stats
+    const followerCount = await user.countFollowers();
+    const followingCount = await user.countFollowing();
+
+    res.json({
+      Success: true,
+      Data: {
+        ...user.toJSON(),
+        preferences: user.preferences ? JSON.parse(user.preferences) : null,
+        Stats: {
+          Followers: followerCount,
+          Following: followingCount,
+          Recipes: user.sharedRecipesCount
+        }
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ Success: false, Message: 'Server error', Errors: [err.message] });
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/profile:
+ *   put:
+ *     summary: Update user profile
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fullName:
+ *                 type: string
+ *               bio:
+ *                 type: string
+ *               avatar:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Profile updated
+ */
+router.put('/profile', authMiddleware, async (req, res) => {
+  try {
+    const { fullName, bio, avatar } = req.body;
+    const user = await User.findByPk(req.user.id);
+
+    if (!user) return res.status(404).json({ Success: false, Message: 'User not found' });
+
+    if (fullName) user.fullName = fullName;
+    if (bio) user.bio = bio;
+    if (avatar) user.avatar = avatar;
+
+    await user.save();
+
+    res.json({
+      Success: true,
+      Message: 'Profile updated successfully',
+      Data: {
+        Id: user.id,
+        FullName: user.fullName,
+        Bio: user.bio,
+        Avatar: user.avatar
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ Success: false, Message: 'Server error' });
   }
 });
 
