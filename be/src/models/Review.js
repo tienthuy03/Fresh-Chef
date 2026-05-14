@@ -18,6 +18,14 @@ const Review = sequelize.define('Review', {
     type: DataTypes.TEXT, // Store JSON array of image paths
     allowNull: true,
   },
+  likes: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+  commentsCount: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
 });
 
 module.exports = Review;

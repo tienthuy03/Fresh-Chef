@@ -70,36 +70,102 @@ router.post('/reviews', auth, upload.array('images', 5), async (req, res) => {
   }
 });
 
+const optionalAuth = (req, res, next) => {
+  const authHeader = req.header('Authorization');
+  if (!authHeader) return next();
+  return auth(req, res, next);
+};
+
 /**
  * @swagger
  * /api/community/feed:
  *   get:
- *     summary: Get latest community reviews (UGC feed)
+ *     summary: Get community reviews (following or discover)
  *     tags: [Community]
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [discover, following]
  *     responses:
  *       200:
- *         description: List of latest reviews
+ *         description: List of reviews
  */
-router.get('/feed', async (req, res) => {
+router.get('/feed', optionalAuth, async (req, res) => {
   try {
+    const { type = 'discover' } = req.query;
+    let whereClause = {};
+
+    if (type === 'following' && req.user) {
+      const following = await Follow.findAll({
+        where: { followerId: req.user.id },
+        attributes: ['followingId']
+      });
+      const followingIds = following.map(f => f.followingId);
+      whereClause = { UserId: followingIds };
+    }
+
     const reviews = await Review.findAll({
+      where: whereClause,
       limit: 20,
       order: [['createdAt', 'DESC']],
       include: [
-        { model: User, attributes: ['username', 'fullName'] },
+        { model: User, attributes: ['username', 'fullName', 'avatar'] },
         { model: Recipe, attributes: ['title', 'id'] }
       ]
     });
 
     res.json({
       Success: true,
-      Data: reviews.map(rev => ({
-        ...rev.toJSON(),
-        images: rev.images ? JSON.parse(rev.images) : []
-      }))
+      Data: reviews.map(rev => {
+        let parsedImages = [];
+        try {
+          parsedImages = rev.images ? JSON.parse(rev.images) : [];
+          if (!Array.isArray(parsedImages)) parsedImages = [];
+        } catch (e) {
+          parsedImages = [];
+        }
+        
+        return {
+          ...rev.toJSON(),
+          images: parsedImages,
+          comments: rev.commentsCount
+        };
+      })
     });
   } catch (err) {
     res.status(500).json({ Success: false, Message: 'Server error', Errors: [err.message] });
+  }
+});
+
+/**
+ * @swagger
+ * /api/community/users:
+ *   get:
+ *     summary: Get list of users to discover
+ *     tags: [Community]
+ */
+router.get('/users', optionalAuth, async (req, res) => {
+  try {
+    const whereClause = {};
+    if (req.user) {
+      const { Op } = require('sequelize');
+      whereClause.id = { [Op.ne]: req.user.id }; // Exclude current user
+    }
+
+    const users = await User.findAll({
+      where: whereClause,
+      limit: 10,
+      attributes: ['id', 'username', 'fullName', 'avatar', 'bio']
+    });
+
+    res.json({
+      Success: true,
+      Data: users
+    });
+  } catch (err) {
+    res.status(500).json({ Success: false, Message: 'Server error' });
   }
 });
 
@@ -129,10 +195,18 @@ router.get('/recipes/:recipeId/reviews', async (req, res) => {
 
     res.json({
       Success: true,
-      Data: reviews.map(rev => ({
-        ...rev.toJSON(),
-        images: rev.images ? JSON.parse(rev.images) : []
-      }))
+      Data: reviews.map(rev => {
+        let parsedImages = [];
+        try {
+          parsedImages = rev.images ? JSON.parse(rev.images) : [];
+        } catch (e) {
+          parsedImages = [];
+        }
+        return {
+          ...rev.toJSON(),
+          images: parsedImages
+        };
+      })
     });
   } catch (err) {
     res.status(500).json({ Success: false, Message: 'Server error' });
@@ -171,6 +245,112 @@ router.post('/follow/:userId', auth, async (req, res) => {
       res.json({ Success: true, Message: 'Followed user', Following: true });
     }
   } catch (err) {
+    res.status(500).json({ Success: false, Message: 'Server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/community/reviews/{reviewId}/like:
+ *   post:
+ *     summary: Like a review
+ *     tags: [Community]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post('/reviews/:reviewId/like', auth, async (req, res) => {
+  try {
+    const review = await Review.findByPk(req.params.reviewId);
+    if (!review) return res.status(404).json({ Success: false, Message: 'Review not found' });
+
+    review.likes += 1;
+    await review.save();
+
+    res.json({ Success: true, Message: 'Liked review', Likes: review.likes });
+  } catch (err) {
+    res.status(500).json({ Success: false, Message: 'Server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/community/reviews/{reviewId}:
+ *   delete:
+ *     summary: Delete a review
+ *     tags: [Community]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.delete('/reviews/:reviewId', auth, async (req, res) => {
+  try {
+    const review = await Review.findByPk(req.params.reviewId);
+    if (!review) return res.status(404).json({ Success: false, Message: 'Review not found' });
+
+    if (review.UserId !== req.user.id) {
+      return res.status(403).json({ Success: false, Message: 'Unauthorized' });
+    }
+
+    await review.destroy();
+    res.json({ Success: true, Message: 'Review deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ Success: false, Message: 'Server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/community/reviews/{reviewId}:
+ *   put:
+ *     summary: Update a review
+ *     tags: [Community]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.put('/reviews/:reviewId', auth, upload.array('images', 5), async (req, res) => {
+  try {
+    const { content, rating, existingImages } = req.body;
+    const review = await Review.findByPk(req.params.reviewId);
+    
+    if (!review) return res.status(404).json({ Success: false, Message: 'Review not found' });
+    if (review.UserId !== req.user.id) {
+      return res.status(403).json({ Success: false, Message: 'Unauthorized' });
+    }
+
+    const updateData = { content, rating };
+    
+    // Process images
+    let finalImages = [];
+    
+    // Start with existing images if provided
+    if (existingImages) {
+      try {
+        finalImages = JSON.parse(existingImages);
+      } catch (e) {
+        finalImages = [];
+      }
+    }
+
+    // Add new uploaded images
+    if (req.files && req.files.length > 0) {
+      const newImagePaths = req.files.map(f => `/uploads/${f.filename}`);
+      finalImages = [...finalImages, ...newImagePaths];
+    }
+
+    // Update images field as JSON string
+    updateData.images = JSON.stringify(finalImages);
+
+    await review.update(updateData);
+    
+    res.json({ 
+      Success: true, 
+      Message: 'Review updated successfully', 
+      Data: {
+        ...review.toJSON(),
+        images: finalImages
+      } 
+    });
+  } catch (err) {
+    console.error('Update review error:', err);
     res.status(500).json({ Success: false, Message: 'Server error' });
   }
 });

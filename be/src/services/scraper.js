@@ -26,7 +26,7 @@ async function scrapeRecipes(keyword) {
 
     console.log(`Found ${recipeUrls.length} recipes for keyword: ${keyword}`);
 
-    for (const relativeUrl of recipeUrls.slice(0, 5)) {
+    for (const relativeUrl of recipeUrls.slice(0, 20)) {
       // Cookpad URL already starts with /vn, so we just need the domain
       const fullUrl = `https://cookpad.com${relativeUrl}`;
       await getRecipeDetail(fullUrl, keyword);

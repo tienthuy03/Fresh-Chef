@@ -14,7 +14,7 @@ export default StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: 20,
+    paddingBottom: 10,
     backgroundColor: Colors.white,
   },
   greeting: {
@@ -51,10 +51,8 @@ export default StyleSheet.create({
     paddingBottom: 20,
   },
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginTop: 20,
+    marginTop: 15,
+    marginBottom: 5,
   },
   searchIcon: {
     position: 'absolute',
@@ -209,7 +207,7 @@ export default StyleSheet.create({
     fontWeight: '500',
   },
   recommendationWrapper: {
-    marginTop: 30,
+    marginTop: 15,
   },
   recommendationCard: {
     width: SCREEN_WIDTH - 40,
@@ -217,11 +215,7 @@ export default StyleSheet.create({
     backgroundColor: '#FFF0F0',
     borderRadius: 25,
     padding: 20,
-    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 5,
     borderWidth: 1,
     borderColor: '#FFE0E0',
   },

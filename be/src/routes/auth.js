@@ -430,6 +430,24 @@ router.get('/me', authMiddleware, async (req, res) => {
   }
 });
 
+const multer = require('multer');
+const path = require('path');
+
+// Multer config for avatar upload
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'public/uploads/');
+  },
+  filename: (req, file, cb) => {
+    cb(null, `avatar_${Date.now()}${path.extname(file.originalname)}`);
+  }
+});
+
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
+
 /**
  * @swagger
  * /api/auth/profile:
@@ -440,7 +458,7 @@ router.get('/me', authMiddleware, async (req, res) => {
  *       - bearerAuth: []
  *     requestBody:
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
@@ -450,20 +468,24 @@ router.get('/me', authMiddleware, async (req, res) => {
  *                 type: string
  *               avatar:
  *                 type: string
+ *                 format: binary
  *     responses:
  *       200:
  *         description: Profile updated
  */
-router.put('/profile', authMiddleware, async (req, res) => {
+router.put('/profile', authMiddleware, upload.single('avatar'), async (req, res) => {
   try {
-    const { fullName, bio, avatar } = req.body;
+    const { fullName, bio } = req.body;
     const user = await User.findByPk(req.user.id);
 
     if (!user) return res.status(404).json({ Success: false, Message: 'User not found' });
 
-    if (fullName) user.fullName = fullName;
-    if (bio) user.bio = bio;
-    if (avatar) user.avatar = avatar;
+    if (fullName !== undefined) user.fullName = fullName;
+    if (bio !== undefined) user.bio = bio;
+    
+    if (req.file) {
+      user.avatar = `/uploads/${req.file.filename}`;
+    }
 
     await user.save();
 
@@ -478,6 +500,7 @@ router.put('/profile', authMiddleware, async (req, res) => {
       }
     });
   } catch (err) {
+    console.error('Profile update error:', err);
     res.status(500).json({ Success: false, Message: 'Server error' });
   }
 });

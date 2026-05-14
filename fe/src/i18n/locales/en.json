@@ -68,5 +68,22 @@
   "trending_now": "Trending Now",
   "browse_by_cuisine": "Browse by Cuisine",
   "community": "Community",
-  "cookbook": "Cookbook"
+  "cookbook": "Cookbook",
+  "success": "Success",
+  "error": "Error",
+  "avatar_updated_success": "Avatar updated successfully!",
+  "avatar_updated_failed": "Failed to update avatar",
+  "profile_updated_success": "Profile updated successfully!",
+  "profile_updated_failed": "Failed to update profile",
+  "password_changed_success": "Password changed successfully!",
+  "password_changed_failed": "Failed to change password",
+  "passwords_not_match": "New passwords do not match",
+  "saved_recipes": "Saved Recipes",
+  "shopping_list": "Shopping List",
+  "my_collections": "My Collections",
+  "all_saved": "All Saved",
+  "favorites": "Favorites",
+  "healthy": "Healthy",
+  "spicy": "Spicy",
+  "clear_all": "Clear All"
 }

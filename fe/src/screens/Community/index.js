@@ -1,63 +1,66 @@
 import React from 'react';
-import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, Platform, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Image, TouchableOpacity, FlatList, ActivityIndicator, Modal, TextInput, Alert, ImageBackground, Dimensions, Platform } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 import { Colors } from '@constants/Colors';
 import { useTranslation } from 'react-i18next';
-import { useGetFeedQuery, useFollowUserMutation } from '@redux/api/Community';
+import { 
+  useGetFeedQuery, 
+  useGetUsersQuery,
+  useFollowUserMutation, 
+  usePostReviewMutation, 
+  useLikeReviewMutation,
+  useDeleteReviewMutation,
+  useUpdateReviewMutation
+} from '@redux/api/Community';
+import { useGetRecipesQuery } from '@redux/api/Recipes';
+import { useGetMeQuery } from '@redux/api/Auth';
+import { BASE_URL } from '@constants/Config';
 
-
-const FeedItem = ({ item, onFollow, isFollowing }) => (
-  <View style={styles.feedCard}>
-    <View style={styles.feedHeader}>
-      <Image source={{ uri: item.User?.avatar || `https://i.pravatar.cc/150?u=${item.UserId}` }} style={styles.avatar} />
-      <View style={styles.headerInfo}>
-        <Text style={styles.userName}>{item.User?.fullName || item.User?.username}</Text>
-        <Text style={styles.feedTime}>{new Date(item.createdAt).toLocaleDateString()}</Text>
-      </View>
-      <TouchableOpacity onPress={() => onFollow(item.UserId)}>
-        <Text style={{ color: Colors.primary, fontWeight: 'bold' }}>Follow</Text>
+const UserItem = ({ item, onFollow }) => {
+  const { t } = useTranslation();
+  return (
+    <View style={styles.userCard}>
+      <Image 
+        source={{ 
+          uri: item.avatar 
+            ? (item.avatar.startsWith('http') ? item.avatar : BASE_URL + item.avatar)
+            : `https://i.pravatar.cc/150?u=${item.id}` 
+        }} 
+        style={styles.userAvatar} 
+      />
+      <Text style={styles.userFullName} numberOfLines={1}>
+        {item.fullName || item.username}
+      </Text>
+      <TouchableOpacity style={styles.followSmallButton} onPress={() => onFollow(item.id)}>
+        <Text style={styles.followSmallButtonText}>{t('connect')}</Text>
       </TouchableOpacity>
     </View>
+  );
+};
 
-    <Text style={styles.feedContent}>{item.content}</Text>
-    
-    <TouchableOpacity style={styles.recipeTag}>
-      <Ionicons name="restaurant-outline" size={14} color={Colors.primary} />
-      <Text style={styles.recipeTagName}>{item.Recipe?.title}</Text>
-    </TouchableOpacity>
-
-    {item.images && JSON.parse(item.images).length > 0 && (
-      <Image source={{ uri: `http://localhost:3000${JSON.parse(item.images)[0]}` }} style={styles.feedImage} />
-    )}
-
-    <View style={styles.feedFooter}>
-      <View style={styles.ratingContainer}>
-        {[1, 2, 3, 4, 5].map((s) => (
-          <Ionicons key={s} name="star" size={16} color={s <= item.rating ? '#FFD700' : Colors.border} />
-        ))}
-      </View>
-      
-      <View style={styles.statsContainer}>
-        <TouchableOpacity style={styles.statItem}>
-          <Ionicons name="heart-outline" size={20} color={Colors.text} />
-          <Text style={styles.statText}>{item.likes}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.statItem}>
-          <Ionicons name="chatbubble-outline" size={20} color={Colors.text} />
-          <Text style={styles.statText}>{item.comments}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.statItem}>
-          <Ionicons name="share-social-outline" size={20} color={Colors.text} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  </View>
-);
+import FeedItem from '@components/Community/FeedItem';
+import SectionHeader from '@components/GlobalUI/SectionHeader';
+import ReviewModal from '@components/Community/ReviewModal';
 
 const CommunityScreen = () => {
   const { t } = useTranslation();
-  const { data: feedData, isLoading, refetch } = useGetFeedQuery();
+  const [feedType, setFeedType] = React.useState('discover');
+  const { data: feedData, isLoading, refetch } = useGetFeedQuery(feedType);
+  const { data: usersData } = useGetUsersQuery();
+  const { data: recipesData } = useGetRecipesQuery();
+  const { data: meData } = useGetMeQuery();
   const [followUser] = useFollowUserMutation();
+  const [postReview, { isLoading: isPosting }] = usePostReviewMutation();
+  const [likeReview] = useLikeReviewMutation();
+  const [deleteReview] = useDeleteReviewMutation();
+  const [updateReview] = useUpdateReviewMutation();
+
+  const currentUserId = meData?.Data?.id;
+
+  const [modalVisible, setModalVisible] = React.useState(false);
+  const [editingReviewId, setEditingReviewId] = React.useState(null);
 
   const handleFollow = async (userId) => {
     try {
@@ -67,7 +70,98 @@ const CommunityScreen = () => {
     }
   };
 
-  if (isLoading) {
+  const handleLike = async (reviewId) => {
+    try {
+      await likeReview(reviewId).unwrap();
+    } catch (err) {
+      console.log('Like error:', err);
+    }
+  };
+
+  const handleDelete = async (reviewId) => {
+    Alert.alert(
+      t('delete'),
+      t('delete_confirm'),
+      [
+        { text: t('cancel'), style: 'cancel' },
+        { 
+          text: t('delete'), 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteReview(reviewId).unwrap();
+              Alert.alert(t('success_title'), t('delete_success'));
+            } catch (err) {
+              Alert.alert(t('error_title'), 'Failed to delete');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleEdit = (item) => {
+    setEditingReviewId(item.id);
+    setModalVisible(true);
+  };
+
+  const handlePostReview = async (formData) => {
+    const { content, rating, recipeId, selectedImages, existingImages } = formData;
+    
+    // Validate
+    if (!content) {
+      Alert.alert(t('error_title'), t('missing_fields'));
+      return;
+    }
+
+    if (!editingReviewId && !recipeId) {
+      Alert.alert(t('error_title'), t('choose_recipe'));
+      return;
+    }
+
+    try {
+      const body = new FormData();
+      body.append('content', content);
+      body.append('rating', rating);
+      
+      if (recipeId) {
+        body.append('recipeId', recipeId);
+      }
+
+      // Add existing images if updating
+      if (editingReviewId && existingImages) {
+        body.append('existingImages', JSON.stringify(existingImages));
+      }
+
+      // Add new selected images
+      selectedImages.forEach((img, index) => {
+        body.append('images', {
+          uri: Platform.OS === 'ios' ? img.uri.replace('file://', '') : img.uri,
+          type: img.type || 'image/jpeg',
+          name: img.fileName || `image_${Date.now()}_${index}.jpg`,
+        });
+      });
+
+      if (editingReviewId) {
+        await updateReview({ 
+          reviewId: editingReviewId, 
+          data: body 
+        }).unwrap();
+        Alert.alert(t('success_title'), t('update_success'));
+      } else {
+        await postReview(body).unwrap();
+        Alert.alert(t('success_title'), t('post_success'));
+      }
+      
+      setModalVisible(false);
+      setEditingReviewId(null);
+    } catch (err) {
+      console.log('Post/Update error:', err);
+      Alert.alert(t('error_title'), t('post_error'));
+    }
+  };
+
+  if (isLoading && !feedData) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={Colors.primary} />
@@ -77,29 +171,69 @@ const CommunityScreen = () => {
 
   return (
     <View style={styles.container}>
+      <ReviewModal 
+        visible={modalVisible}
+        onClose={() => {
+          setModalVisible(false);
+          setEditingReviewId(null);
+        }}
+        onSubmit={handlePostReview}
+        isLoading={isPosting}
+        recipes={recipesData?.Data}
+        initialData={editingReviewId ? feedData?.Data?.find(r => r.id === editingReviewId) : null}
+      />
+
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{t('community')}</Text>
-        <TouchableOpacity style={styles.addButton}>
+        <TouchableOpacity style={styles.createButton} onPress={() => setModalVisible(true)}>
           <Ionicons name="add" size={28} color={Colors.white} />
         </TouchableOpacity>
       </View>
 
       <FlatList
         data={feedData?.Data || []}
-        renderItem={({ item }) => <FeedItem item={item} onFollow={handleFollow} />}
+        renderItem={({ item }) => (
+          <FeedItem 
+            item={item} 
+            onFollow={handleFollow} 
+            onLike={handleLike} 
+            currentUserId={currentUserId} 
+            onDelete={handleDelete}
+            onEdit={handleEdit}
+          />
+        )}
         keyExtractor={(item) => String(item.id)}
         onRefresh={refetch}
         refreshing={isLoading}
         contentContainerStyle={styles.feedList}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={() => (
-          <View style={styles.tabsContainer}>
-            <TouchableOpacity style={[styles.tab, styles.activeTab]}>
-              <Text style={[styles.tabText, styles.activeTabText]}>Following</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.tab}>
-              <Text style={styles.tabText}>Discover</Text>
-            </TouchableOpacity>
+          <View>
+            <View style={styles.tabsContainer}>
+              <TouchableOpacity 
+                style={[styles.tab, feedType === 'following' && styles.activeTab]}
+                onPress={() => setFeedType('following')}
+              >
+                <Text style={[styles.tabText, feedType === 'following' && styles.activeTabText]}>{t('following')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.tab, feedType === 'discover' && styles.activeTab]}
+                onPress={() => setFeedType('discover')}
+              >
+                <Text style={[styles.tabText, feedType === 'discover' && styles.activeTabText]}>{t('discover')}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {feedType === 'discover' && usersData?.Data?.length > 0 && (
+              <View style={styles.suggestedSection}>
+                <SectionHeader title={t('suggested_chefs')} />
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.usersScroll}>
+                  {usersData.Data.map((user) => (
+                    <UserItem key={user.id} item={user} onFollow={handleFollow} />
+                  ))}
+                </ScrollView>
+              </View>
+            )}
           </View>
         )}
         ListFooterComponent={() => <View style={{ height: 100 }} />}
@@ -108,158 +242,6 @@ const CommunityScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: 15,
-    backgroundColor: Colors.white,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: Colors.text,
-  },
-  addButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  feedList: {
-    paddingBottom: 20,
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginTop: 15,
-    marginBottom: 10,
-  },
-  tab: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 10,
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  activeTab: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.textLight,
-  },
-  activeTabText: {
-    color: Colors.white,
-  },
-  feedCard: {
-    backgroundColor: Colors.white,
-    marginHorizontal: 20,
-    marginTop: 15,
-    borderRadius: 20,
-    padding: 15,
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  feedHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  headerInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.text,
-  },
-  feedTime: {
-    fontSize: 12,
-    color: Colors.textLight,
-    marginTop: 2,
-  },
-  feedContent: {
-    fontSize: 15,
-    color: Colors.text,
-    lineHeight: 22,
-    marginBottom: 12,
-  },
-  recipeTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 107, 107, 0.1)',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-    marginBottom: 12,
-  },
-  recipeTagName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.primary,
-    marginLeft: 6,
-  },
-  feedImage: {
-    width: '100%',
-    height: 250,
-    borderRadius: 15,
-    marginBottom: 12,
-  },
-  feedFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 15,
-  },
-  statText: {
-    fontSize: 14,
-    color: Colors.text,
-    marginLeft: 5,
-    fontWeight: '500',
-  },
-});
+import styles from './styles';
 
 export default CommunityScreen;

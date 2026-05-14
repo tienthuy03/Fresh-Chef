@@ -1,22 +1,120 @@
-import React from 'react';
-import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, Platform, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
+import { 
+  View, 
+  Text, 
+  ScrollView, 
+  Image, 
+  TouchableOpacity, 
+  StyleSheet, 
+  Platform, 
+  ActivityIndicator,
+  Modal,
+  TextInput,
+  Alert
+} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '@constants/Colors';
 import { useTranslation } from 'react-i18next';
-import { useGetMeQuery } from '@redux/api/Auth';
+import { useGetMeQuery, useUpdateProfileMutation, useChangePasswordMutation } from '@redux/api/Auth';
 import { useDispatch } from 'react-redux';
 import { logOut } from '@redux/slices/authSlice';
+import SectionHeader from '@components/GlobalUI/SectionHeader';
+import PrimaryButton from '@components/GlobalUI/PrimaryButton';
+import { launchImageLibrary } from 'react-native-image-picker';
+import { BASE_URL } from '@constants/Config';
 
-const ProfileScreen = () => {
+
+
+const ProfileScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const dispatch = useDispatch();
-  const { data: profileData, isLoading } = useGetMeQuery();
+  const { data: profileData, isLoading, refetch } = useGetMeQuery();
+  const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation();
+  const [changePassword, { isLoading: isChangingPassword }] = useChangePasswordMutation();
   
   const user = profileData?.Data || {};
   const stats = user.Stats || { Followers: 0, Following: 0, Recipes: 0 };
 
+  // Modals visibility
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [isPasswordModalVisible, setIsPasswordModalVisible] = useState(false);
+
+  // Form states
+  const [editForm, setEditForm] = useState({ fullName: '', bio: '' });
+  const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
+
   const handleLogout = () => {
     dispatch(logOut());
+  };
+
+  const handleEditAvatar = async () => {
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      quality: 0.8,
+    });
+
+    if (result.assets && result.assets.length > 0) {
+      const asset = result.assets[0];
+      const formData = new FormData();
+      formData.append('avatar', {
+        uri: Platform.OS === 'ios' ? asset.uri.replace('file://', '') : asset.uri,
+        type: asset.type || 'image/jpeg',
+        name: asset.fileName || 'avatar.jpg',
+      });
+
+      try {
+        await updateProfile(formData).unwrap();
+        refetch();
+        Alert.alert(t('success'), t('avatar_updated_success', 'Cập nhật ảnh đại diện thành công!'));
+      } catch (err) {
+        console.error('Avatar update failed', err);
+        Alert.alert(t('error'), t('avatar_updated_failed', 'Cập nhật ảnh đại diện thất bại'));
+      }
+    }
+  };
+
+  const openEditModal = () => {
+    setEditForm({
+      fullName: user.fullName || '',
+      bio: user.bio || '',
+    });
+    setIsEditModalVisible(true);
+  };
+
+  const handleUpdateProfile = async () => {
+    const formData = new FormData();
+    formData.append('fullName', editForm.fullName);
+    formData.append('bio', editForm.bio);
+
+    try {
+      await updateProfile(formData).unwrap();
+      refetch();
+      setIsEditModalVisible(false);
+      Alert.alert(t('success'), t('profile_updated_success', 'Cập nhật hồ sơ thành công!'));
+    } catch (err) {
+      Alert.alert(t('error'), t('profile_updated_failed', 'Cập nhật hồ sơ thất bại'));
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      Alert.alert(t('error'), t('passwords_not_match', 'Mật khẩu mới không khớp'));
+      return;
+    }
+
+    try {
+      await changePassword({
+        username: user.username,
+        oldPassword: passwordForm.oldPassword,
+        newPassword: passwordForm.newPassword
+      }).unwrap();
+      
+      setIsPasswordModalVisible(false);
+      setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
+      Alert.alert(t('success'), t('password_changed_success', 'Đổi mật khẩu thành công!'));
+    } catch (err) {
+      Alert.alert(t('error'), err.data?.Message || t('password_changed_failed', 'Đổi mật khẩu thất bại'));
+    }
   };
 
   if (isLoading) {
@@ -27,8 +125,8 @@ const ProfileScreen = () => {
     );
   }
 
-  const MenuItem = ({ icon, title, subtitle, color = Colors.text }) => (
-    <TouchableOpacity style={styles.menuItem}>
+  const MenuItem = ({ icon, title, subtitle, color = Colors.text, onPress }) => (
+    <TouchableOpacity style={styles.menuItem} onPress={onPress}>
       <View style={[styles.menuIconContainer, { backgroundColor: `${color}15` }]}>
         <Ionicons name={icon} size={22} color={color} />
       </View>
@@ -39,6 +137,12 @@ const ProfileScreen = () => {
       <Ionicons name="chevron-forward" size={20} color={Colors.border} />
     </TouchableOpacity>
   );
+
+  const getAvatarUri = () => {
+    if (!user.avatar) return `https://i.pravatar.cc/150?u=${user.id}`;
+    if (user.avatar.startsWith('http')) return user.avatar;
+    return `${BASE_URL}${user.avatar}`;
+  };
 
   return (
     <View style={styles.container}>
@@ -51,11 +155,17 @@ const ProfileScreen = () => {
           
           <View style={styles.profileInfo}>
             <View style={styles.avatarContainer}>
-              <Image 
-                source={{ uri: user.avatar || `https://i.pravatar.cc/150?u=${user.id}` }} 
-                style={styles.avatar} 
-              />
-              <TouchableOpacity style={styles.editAvatarButton}>
+              {isUpdating ? (
+                <View style={[styles.avatar, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f0f0' }]}>
+                   <ActivityIndicator color={Colors.primary} />
+                </View>
+              ) : (
+                <Image 
+                  source={{ uri: getAvatarUri() }} 
+                  style={styles.avatar} 
+                />
+              )}
+              <TouchableOpacity style={styles.editAvatarButton} onPress={handleEditAvatar} disabled={isUpdating}>
                 <Ionicons name="camera" size={16} color={Colors.white} />
               </TouchableOpacity>
             </View>
@@ -79,214 +189,184 @@ const ProfileScreen = () => {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.editProfileButton}>
-              <Text style={styles.editProfileButtonText}>Edit Profile</Text>
-            </TouchableOpacity>
+            <PrimaryButton 
+              title="Chỉnh sửa hồ sơ" 
+              onPress={openEditModal} 
+              style={styles.editProfileButton}
+              textStyle={styles.editProfileButtonText}
+            />
           </View>
         </View>
 
         {/* Content Sections */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Preferences</Text>
-          <MenuItem 
-            icon="restaurant-outline" 
-            title="Dietary Restrictions" 
-            subtitle={user.preferences?.diets?.join(', ') || 'None'} 
-            color={Colors.primary} 
-          />
-          <MenuItem 
-            icon="heart-outline" 
-            title="Favorite Cuisines" 
-            subtitle="Italian, Japanese" 
-            color="#4ECDC4" 
-          />
-          <MenuItem 
-            icon="notifications-outline" 
-            title="Notifications" 
-            subtitle="Daily recipe alerts on" 
-            color="#FFE66D" 
-          />
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+            <SectionHeader title="Sở thích nấu nướng" style={{ marginBottom: 0 }} />
+            <TouchableOpacity onPress={() => navigation.navigate('PreferenceQuiz')}>
+              <Text style={{ color: Colors.primary, fontWeight: '600' }}>Cập nhật</Text>
+            </TouchableOpacity>
+          </View>
+          {user.preferences?.diets?.length > 0 ? (
+            <MenuItem 
+              icon="restaurant-outline" 
+              title="Chế độ ăn uống" 
+              subtitle={user.preferences.diets.join(', ')} 
+              color={Colors.primary} 
+            />
+          ) : (
+             <Text style={styles.emptyText}>Chưa thiết lập chế độ ăn</Text>
+          )}
+          {user.preferences?.householdSize ? (
+            <MenuItem 
+              icon="people-outline" 
+              title="Khẩu phần gia đình" 
+              subtitle={`${user.preferences.householdSize} người`} 
+              color="#4ECDC4" 
+            />
+          ) : null}
+          {user.preferences?.timeLimit ? (
+            <MenuItem 
+              icon="time-outline" 
+              title="Thời gian nấu nướng" 
+              subtitle={`${user.preferences.timeLimit}`} 
+              color="#FF9F43" 
+            />
+          ) : null}
         </View>
+
+        {user.bio && (
+          <View style={styles.section}>
+            <SectionHeader title="Giới thiệu" />
+            <View style={styles.bioContainer}>
+              <Text style={styles.bioText}>{user.bio}</Text>
+            </View>
+          </View>
+        )}
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          <MenuItem icon="person-outline" title="Personal Information" />
-          <MenuItem icon="shield-checkmark-outline" title="Security & Privacy" />
-          <MenuItem icon="help-circle-outline" title="Help & Support" />
+          <SectionHeader title="Tài khoản" />
+          <MenuItem 
+            icon="person-outline" 
+            title="Thông tin cá nhân" 
+            onPress={openEditModal}
+          />
+          <MenuItem 
+            icon="shield-checkmark-outline" 
+            title="Đổi mật khẩu" 
+            onPress={() => setIsPasswordModalVisible(true)}
+          />
         </View>
 
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={22} color={Colors.error} />
-          <Text style={styles.logoutText}>Log Out</Text>
-        </TouchableOpacity>
+        <PrimaryButton 
+          title="Đăng xuất" 
+          onPress={handleLogout} 
+          style={styles.logoutButton}
+          textStyle={styles.logoutText}
+          iconLeft={<Ionicons name="log-out-outline" size={22} color={Colors.error} />}
+        />
 
         <View style={{ height: 120 }} />
       </ScrollView>
+
+      {/* Edit Profile Modal */}
+      <Modal visible={isEditModalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Chỉnh sửa hồ sơ</Text>
+              <TouchableOpacity onPress={() => setIsEditModalVisible(false)}>
+                <Ionicons name="close" size={24} color={Colors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Họ và tên</Text>
+              <TextInput 
+                style={styles.textInput}
+                value={editForm.fullName}
+                onChangeText={(v) => setEditForm(prev => ({ ...prev, fullName: v }))}
+                placeholder="Nhập họ tên"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Giới thiệu (Bio)</Text>
+              <TextInput 
+                style={[styles.textInput, { height: 100 }]}
+                value={editForm.bio}
+                onChangeText={(v) => setEditForm(prev => ({ ...prev, bio: v }))}
+                placeholder="Viết vài dòng giới thiệu về bản thân..."
+                multiline
+              />
+            </View>
+
+            <PrimaryButton 
+              title="Cập nhật" 
+              onPress={handleUpdateProfile}
+              isLoading={isUpdating}
+              style={{ marginTop: 20 }}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Change Password Modal */}
+      <Modal visible={isPasswordModalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Đổi mật khẩu</Text>
+              <TouchableOpacity onPress={() => setIsPasswordModalVisible(false)}>
+                <Ionicons name="close" size={24} color={Colors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Mật khẩu cũ</Text>
+              <TextInput 
+                style={styles.textInput}
+                value={passwordForm.oldPassword}
+                onChangeText={(v) => setPasswordForm(prev => ({ ...prev, oldPassword: v }))}
+                placeholder="********"
+                secureTextEntry
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Mật khẩu mới</Text>
+              <TextInput 
+                style={styles.textInput}
+                value={passwordForm.newPassword}
+                onChangeText={(v) => setPasswordForm(prev => ({ ...prev, newPassword: v }))}
+                placeholder="********"
+                secureTextEntry
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Xác nhận mật khẩu mới</Text>
+              <TextInput 
+                style={styles.textInput}
+                value={passwordForm.confirmPassword}
+                onChangeText={(v) => setPasswordForm(prev => ({ ...prev, confirmPassword: v }))}
+                placeholder="********"
+                secureTextEntry
+              />
+            </View>
+
+            <PrimaryButton 
+              title="Đổi mật khẩu" 
+              onPress={handleChangePassword}
+              isLoading={isChangingPassword}
+              style={{ marginTop: 20 }}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  header: {
-    backgroundColor: Colors.white,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: 30,
-    borderBottomLeftRadius: 35,
-    borderBottomRightRadius: 35,
-    alignItems: 'center',
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.05,
-    shadowRadius: 15,
-    elevation: 5,
-  },
-  settingsButton: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 40,
-    right: 20,
-  },
-  profileInfo: {
-    alignItems: 'center',
-    width: '100%',
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: 15,
-  },
-  avatar: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    borderWidth: 4,
-    borderColor: Colors.background,
-  },
-  editAvatarButton: {
-    position: 'absolute',
-    bottom: 5,
-    right: 5,
-    backgroundColor: Colors.primary,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: Colors.white,
-  },
-  userName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: Colors.text,
-  },
-  userEmail: {
-    fontSize: 14,
-    color: Colors.textLight,
-    marginTop: 4,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    marginTop: 25,
-    width: '80%',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.text,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: Colors.textLight,
-    marginTop: 4,
-  },
-  statDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: Colors.border,
-  },
-  editProfileButton: {
-    marginTop: 25,
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    borderRadius: 20,
-    backgroundColor: Colors.background,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  editProfileButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  section: {
-    marginTop: 25,
-    paddingHorizontal: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginBottom: 15,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    padding: 15,
-    borderRadius: 20,
-    marginBottom: 12,
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  menuIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  menuTextContainer: {
-    flex: 1,
-    marginLeft: 15,
-  },
-  menuTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  menuSubtitle: {
-    fontSize: 12,
-    color: Colors.textLight,
-    marginTop: 2,
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 30,
-    paddingVertical: 15,
-    marginHorizontal: 20,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 118, 117, 0.1)',
-  },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.error,
-    marginLeft: 10,
-  },
-});
+import styles from './styles';
 
 export default ProfileScreen;

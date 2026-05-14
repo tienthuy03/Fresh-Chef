@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import styles from './styles';
 import { useTranslation } from 'react-i18next';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -46,10 +47,15 @@ const OnboardingScreen = ({ navigation }) => {
 
   const viewConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentIndex < slides.length - 1) {
       slidesRef.current.scrollToIndex({ index: currentIndex + 1 });
     } else {
+      try {
+        await AsyncStorage.setItem('HAS_LAUNCHED', 'true');
+      } catch (e) {
+        console.error('Failed to save launch state:', e);
+      }
       navigation.navigate('PreferenceQuiz');
     }
   };

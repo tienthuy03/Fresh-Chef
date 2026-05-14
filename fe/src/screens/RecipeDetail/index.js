@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image, Alert, Platform } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '@constants/Colors';
 import styles from './styles';
@@ -9,7 +9,9 @@ import {
   useToggleFavoriteMutation, 
   useGetFavoritesQuery 
 } from '@redux/api/Recipes';
+import { usePostReviewMutation } from '@redux/api/Community';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import ReviewModal from '@components/Community/ReviewModal';
 
 const RecipeDetailScreen = () => {
   const { t } = useTranslation();
@@ -20,8 +22,40 @@ const RecipeDetailScreen = () => {
   const { data: response, isLoading } = useGetRecipeDetailQuery(recipeId);
   const { data: favoritesData } = useGetFavoritesQuery();
   const [toggleFavorite, { isLoading: isToggling }] = useToggleFavoriteMutation();
+  const [postReview, { isLoading: isPosting }] = usePostReviewMutation();
+
+  const [modalVisible, setModalVisible] = React.useState(false);
 
   const recipe = response?.Data;
+
+  const handlePostReview = async (formData) => {
+    const { content, rating, selectedImages } = formData;
+    if (!content) {
+      Alert.alert(t('error_title'), t('missing_fields'));
+      return;
+    }
+
+    try {
+      const body = new FormData();
+      body.append('content', content);
+      body.append('rating', rating);
+      body.append('recipeId', recipeId);
+      
+      selectedImages.forEach((img, index) => {
+        body.append('images', {
+          uri: Platform.OS === 'ios' ? img.uri.replace('file://', '') : img.uri,
+          type: img.type,
+          name: img.fileName || `image_${index}.jpg`,
+        });
+      });
+      
+      await postReview(body).unwrap();
+      setModalVisible(false);
+      Alert.alert(t('success_title'), t('post_success'));
+    } catch (err) {
+      Alert.alert(t('error_title'), t('post_error'));
+    }
+  };
 
   const isFavorited = React.useMemo(() => {
     if (!favoritesData?.Data || !recipe) return false;
@@ -52,7 +86,6 @@ const RecipeDetailScreen = () => {
     );
   }
 
-  // ingredients and steps might be JSON strings or arrays depending on the API mapping
   const ingredients = Array.isArray(recipe.ingredients) 
     ? recipe.ingredients 
     : (typeof recipe.ingredients === 'string' && recipe.ingredients ? JSON.parse(recipe.ingredients) : []);
@@ -63,6 +96,14 @@ const RecipeDetailScreen = () => {
 
   return (
     <View style={styles.container}>
+      <ReviewModal 
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onSubmit={handlePostReview}
+        isLoading={isPosting}
+        initialRecipe={recipe}
+      />
+
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={Colors.text} />
@@ -78,7 +119,6 @@ const RecipeDetailScreen = () => {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Shopping List Button */}
         <TouchableOpacity 
           style={styles.shoppingListButton}
           onPress={() => navigation.navigate('ShoppingList', { recipeId })}
@@ -126,6 +166,14 @@ const RecipeDetailScreen = () => {
           </View>
         ))}
       </ScrollView>
+
+      <TouchableOpacity 
+        style={styles.floatingActionButton}
+        onPress={() => setModalVisible(true)}
+      >
+        <Ionicons name="camera" size={28} color={Colors.white} />
+        <Text style={styles.floatingActionText}>{t('share_result')}</Text>
+      </TouchableOpacity>
     </View>
   );
 };

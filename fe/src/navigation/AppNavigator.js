@@ -15,16 +15,42 @@ import ShoppingListScreen from '@screens/ShoppingList';
 
 import MainTabNavigator from './MainTabNavigator';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
   const { isLogged, user } = useSelector((state) => state.auth);
-  const hasCompletedSurvey = user?.HasCompletedSurvey;
+  const [isFirstLaunch, setIsFirstLaunch] = React.useState(null);
+
+  React.useEffect(() => {
+    const checkFirstLaunch = async () => {
+      try {
+        const hasLaunched = await AsyncStorage.getItem('HAS_LAUNCHED');
+        if (hasLaunched === null && !isLogged) {
+          setIsFirstLaunch(true);
+        } else {
+          setIsFirstLaunch(false);
+        }
+      } catch (e) {
+        setIsFirstLaunch(false);
+      }
+    };
+    checkFirstLaunch();
+  }, [isLogged]);
+
+  if (isFirstLaunch === null) return null; // Or a splash screen
+
+  const getInitialRoute = () => {
+    if (isLogged) return 'Main';
+    if (isFirstLaunch) return 'Onboarding';
+    return 'Login';
+  };
 
   return (
     <NavigationContainer>
       <Stack.Navigator 
-        initialRouteName="Login"
+        initialRouteName={getInitialRoute()}
         screenOptions={{ headerShown: false }}
       >
         {!isLogged ? (
@@ -42,6 +68,7 @@ const AppNavigator = () => {
             <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
             <Stack.Screen name="AllRecipes" component={AllRecipesScreen} />
             <Stack.Screen name="ShoppingList" component={ShoppingListScreen} />
+            <Stack.Screen name="PreferenceQuiz" component={PreferenceQuizScreen} />
           </>
         )}
       </Stack.Navigator>

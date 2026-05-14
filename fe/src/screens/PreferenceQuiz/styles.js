@@ -7,7 +7,17 @@ export default StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
-    paddingTop: 60,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  skipText: {
+    fontSize: 16,
+    color: Colors.textLight,
+    fontWeight: '600',
   },
   scrollContent: {
     padding: Spacing.lg,

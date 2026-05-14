@@ -1,11 +1,13 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { Platform } from 'react-native';
 
-const BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000/api' : 'http://localhost:3000/api';
+import { API_URL } from '../constants/Config';
+
+const BASE_URL = API_URL;
 
 export const apiService = createApi({
   reducerPath: 'api',
-  tagTypes: ['Favorites', 'ShoppingList', 'Follows'],
+  tagTypes: ['Favorites', 'ShoppingList', 'Follows', 'Feed'],
   baseQuery: fetchBaseQuery({
     baseUrl: BASE_URL,
     prepareHeaders: (headers, { getState }) => {
