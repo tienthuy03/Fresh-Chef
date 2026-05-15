@@ -16,6 +16,8 @@ const Review = require('./Review');
 const Favorite = require('./Favorite');
 const ShoppingItem = require('./ShoppingItem');
 const Follow = require('./Follow');
+const ReviewLike = require('./ReviewLike');
+const Comment = require('./Comment');
 
 // --- ASSOCIATIONS ---
 
@@ -27,9 +29,21 @@ Review.belongsTo(User);
 Recipe.hasMany(Review);
 Review.belongsTo(Recipe);
 
+// User <-> Comment
+User.hasMany(Comment);
+Comment.belongsTo(User);
+
+// Review <-> Comment
+Review.hasMany(Comment);
+Comment.belongsTo(Review);
+
 // User <-> Recipe (Favorites) - Many-to-Many
 User.belongsToMany(Recipe, { through: Favorite, as: 'FavoriteRecipes' });
 Recipe.belongsToMany(User, { through: Favorite, as: 'FavoritedBy' });
+
+// User <-> Review (Likes) - Many-to-Many
+User.belongsToMany(Review, { through: ReviewLike, as: 'LikedReviews' });
+Review.belongsToMany(User, { through: ReviewLike, as: 'LikedByUsers' });
 
 // User <-> ShoppingItem
 User.hasMany(ShoppingItem);
@@ -57,5 +71,7 @@ module.exports = {
   Review,
   Favorite,
   ShoppingItem,
-  Follow
+  Follow,
+  ReviewLike,
+  Comment
 };

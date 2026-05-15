@@ -11,7 +11,7 @@ const RecipeCard = ({ item, isFavorited, onFavoritePress, onPress }) => {
           <Image source={{ uri: item.image_url }} style={styles.recipeImage} />
         ) : (
           <View style={[styles.recipeImage, styles.placeholderImage]}>
-            <Text style={{ fontSize: 40 }}>👨‍🍳</Text>
+            <Text style={{ fontSize: 80}}>👨‍🍳</Text>
           </View>
         )}
         <View style={styles.recipeBadge}>

@@ -19,7 +19,7 @@ const LoginScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const dispatch = useDispatch();
   const [loginTrigger] = useLoginMutation();
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState('d');
   const [password, setPassword] = useState('');
 
   const handleLogin = async () => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, Image, TouchableOpacity, FlatList, ActivityIndicator, Modal, TextInput, Alert, ImageBackground, Dimensions, Platform } from 'react-native';
+import { View, Text, ScrollView, Image, TouchableOpacity, FlatList, ActivityIndicator, Modal, TextInput, Alert, ImageBackground, Dimensions, Platform, Share } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -12,7 +12,9 @@ import {
   usePostReviewMutation, 
   useLikeReviewMutation,
   useDeleteReviewMutation,
-  useUpdateReviewMutation
+  useUpdateReviewMutation,
+  useShareReviewMutation,
+  usePostCommentMutation
 } from '@redux/api/Community';
 import { useGetRecipesQuery } from '@redux/api/Recipes';
 import { useGetMeQuery } from '@redux/api/Auth';
@@ -62,6 +64,9 @@ const CommunityScreen = () => {
   const [modalVisible, setModalVisible] = React.useState(false);
   const [editingReviewId, setEditingReviewId] = React.useState(null);
 
+  const [shareReview] = useShareReviewMutation();
+  const [postComment] = usePostCommentMutation();
+
   const handleFollow = async (userId) => {
     try {
       await followUser(userId).unwrap();
@@ -75,6 +80,28 @@ const CommunityScreen = () => {
       await likeReview(reviewId).unwrap();
     } catch (err) {
       console.log('Like error:', err);
+    }
+  };
+
+  const handleShare = async (item) => {
+    try {
+      const result = await Share.share({
+        message: `${t('check_out_recipe')}: ${item.Recipe?.title || ''}\n${item.content}\nShared from Fresh Chef App`,
+      });
+      if (result.action === Share.sharedAction) {
+        await shareReview(item.id);
+      }
+    } catch (error) {
+      console.log('Share error:', error.message);
+    }
+  };
+
+  const handleComment = async ({ id, content }) => {
+    if (!content) return;
+    try {
+      await postComment({ reviewId: id, content }).unwrap();
+    } catch (err) {
+      Alert.alert(t('error_title'), 'Failed to post comment');
     }
   };
 
@@ -197,6 +224,8 @@ const CommunityScreen = () => {
             item={item} 
             onFollow={handleFollow} 
             onLike={handleLike} 
+            onShare={handleShare}
+            onComment={handleComment}
             currentUserId={currentUserId} 
             onDelete={handleDelete}
             onEdit={handleEdit}

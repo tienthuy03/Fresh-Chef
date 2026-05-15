@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const { Review, User, Recipe, Follow } = require('../models');
+const { Review, User, Recipe, Follow, ReviewLike, Comment } = require('../models');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
@@ -111,10 +111,19 @@ router.get('/feed', optionalAuth, async (req, res) => {
       limit: 20,
       order: [['createdAt', 'DESC']],
       include: [
-        { model: User, attributes: ['username', 'fullName', 'avatar'] },
+        { model: User, attributes: ['id', 'username', 'fullName', 'avatar'] },
         { model: Recipe, attributes: ['title', 'id'] }
       ]
     });
+
+    // Check if current user liked these reviews
+    let likedReviewIds = [];
+    if (req.user) {
+      const likes = await ReviewLike.findAll({
+        where: { UserId: req.user.id, ReviewId: reviews.map(r => r.id) }
+      });
+      likedReviewIds = likes.map(l => l.ReviewId);
+    }
 
     res.json({
       Success: true,
@@ -130,7 +139,8 @@ router.get('/feed', optionalAuth, async (req, res) => {
         return {
           ...rev.toJSON(),
           images: parsedImages,
-          comments: rev.commentsCount
+          comments: rev.commentsCount || 0,
+          isLiked: likedReviewIds.includes(rev.id)
         };
       })
     });
@@ -189,7 +199,7 @@ router.get('/recipes/:recipeId/reviews', async (req, res) => {
   try {
     const reviews = await Review.findAll({
       where: { RecipeId: req.params.recipeId },
-      include: [{ model: User, attributes: ['username', 'fullName'] }],
+      include: [{ model: User, attributes: ['id', 'username', 'fullName', 'avatar'] }],
       order: [['createdAt', 'DESC']]
     });
 
@@ -204,7 +214,8 @@ router.get('/recipes/:recipeId/reviews', async (req, res) => {
         }
         return {
           ...rev.toJSON(),
-          images: parsedImages
+          images: parsedImages,
+          comments: rev.commentsCount || 0
         };
       })
     });
@@ -253,7 +264,7 @@ router.post('/follow/:userId', auth, async (req, res) => {
  * @swagger
  * /api/community/reviews/{reviewId}/like:
  *   post:
- *     summary: Like a review
+ *     summary: Like/Unlike a review (Toggle)
  *     tags: [Community]
  *     security:
  *       - bearerAuth: []
@@ -263,10 +274,41 @@ router.post('/reviews/:reviewId/like', auth, async (req, res) => {
     const review = await Review.findByPk(req.params.reviewId);
     if (!review) return res.status(404).json({ Success: false, Message: 'Review not found' });
 
-    review.likes += 1;
-    await review.save();
+    const existingLike = await ReviewLike.findOne({
+      where: { UserId: req.user.id, ReviewId: req.params.reviewId }
+    });
 
-    res.json({ Success: true, Message: 'Liked review', Likes: review.likes });
+    if (existingLike) {
+      await existingLike.destroy();
+      review.likes = Math.max(0, review.likes - 1);
+      await review.save();
+      res.json({ Success: true, Message: 'Unliked review', Likes: review.likes, IsLiked: false });
+    } else {
+      await ReviewLike.create({ UserId: req.user.id, ReviewId: req.params.reviewId });
+      review.likes += 1;
+      await review.save();
+      res.json({ Success: true, Message: 'Liked review', Likes: review.likes, IsLiked: true });
+    }
+  } catch (err) {
+    res.status(500).json({ Success: false, Message: 'Server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/community/reviews/{reviewId}/share:
+ *   post:
+ *     summary: Track sharing of a review
+ *     tags: [Community]
+ */
+router.post('/reviews/:reviewId/share', async (req, res) => {
+  try {
+    const review = await Review.findByPk(req.params.reviewId);
+    if (!review) return res.status(404).json({ Success: false, Message: 'Review not found' });
+
+    // Mock share count increment
+    // You might want to add a 'shares' column to Review model if you want to persist this
+    res.json({ Success: true, Message: 'Shared successfully' });
   } catch (err) {
     res.status(500).json({ Success: false, Message: 'Server error' });
   }
@@ -351,6 +393,59 @@ router.put('/reviews/:reviewId', auth, upload.array('images', 5), async (req, re
     });
   } catch (err) {
     console.error('Update review error:', err);
+    res.status(500).json({ Success: false, Message: 'Server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/community/reviews/{reviewId}/comments:
+ *   post:
+ *     summary: Post a comment on a review
+ *     tags: [Community]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post('/reviews/:reviewId/comments', auth, async (req, res) => {
+  try {
+    const { content } = req.body;
+    if (!content) return res.status(400).json({ Success: false, Message: 'Content is required' });
+
+    const review = await Review.findByPk(req.params.reviewId);
+    if (!review) return res.status(404).json({ Success: false, Message: 'Review not found' });
+
+    const comment = await Comment.create({
+      content,
+      UserId: req.user.id,
+      ReviewId: req.params.reviewId
+    });
+
+    // Update comment count
+    review.commentsCount += 1;
+    await review.save();
+
+    res.status(201).json({ Success: true, Message: 'Comment posted', Data: comment });
+  } catch (err) {
+    res.status(500).json({ Success: false, Message: 'Server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/community/reviews/{reviewId}/comments:
+ *   get:
+ *     summary: Get all comments for a review
+ *     tags: [Community]
+ */
+router.get('/reviews/:reviewId/comments', async (req, res) => {
+  try {
+    const comments = await Comment.findAll({
+      where: { ReviewId: req.params.reviewId },
+      include: [{ model: User, attributes: ['username', 'fullName', 'avatar'] }],
+      order: [['createdAt', 'ASC']]
+    });
+    res.json({ Success: true, Data: comments });
+  } catch (err) {
     res.status(500).json({ Success: false, Message: 'Server error' });
   }
 });

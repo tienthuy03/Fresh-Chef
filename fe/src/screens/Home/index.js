@@ -108,7 +108,7 @@ const HomeScreen = () => {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Search Bar */}
-        <View style={styles.searchContainer}>
+        {/* <View style={styles.searchContainer}>
           <SearchBar
             placeholder={t('search_recipes_placeholder')}
             rightAction={
@@ -116,7 +116,7 @@ const HomeScreen = () => {
             }
             onRightActionPress={() => {}}
           />
-        </View>
+        </View> */}
 
         {/* Recommendation Carousel */}
         {carouselRecipes && carouselRecipes.length > 0 && (

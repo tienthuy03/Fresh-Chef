@@ -28,6 +28,20 @@ export const communityApi = apiService.injectEndpoints({
       }),
       providesTags: ['Feed'],
     }),
+    getComments: build.query({
+      query: (reviewId) => ({
+        url: `/community/reviews/${reviewId}/comments`,
+        method: 'GET',
+      }),
+      providesTags: (result, error, reviewId) => [{ type: 'Comments', id: reviewId }],
+    }),
+    getRecipeReviews: build.query({
+      query: (recipeId) => ({
+        url: `/community/recipes/${recipeId}/reviews`,
+        method: 'GET',
+      }),
+      providesTags: (result, error, recipeId) => [{ type: 'RecipeReviews', id: recipeId }],
+    }),
 
     getUsers: build.query({
       query: () => ({
@@ -42,9 +56,8 @@ export const communityApi = apiService.injectEndpoints({
         url: CommunityEndPoint.postReview,
         method: 'POST',
         body: formData,
-        // multipart/form-data is automatically handled by fetchBaseQuery if body is FormData
       }),
-      invalidatesTags: ['Feed'],
+      invalidatesTags: ['Feed', 'RecipeReviews'],
     }),
     followUser: build.mutation({
       query: (userId) => ({
@@ -75,15 +88,33 @@ export const communityApi = apiService.injectEndpoints({
       }),
       invalidatesTags: ['Feed'],
     }),
+    shareReview: build.mutation({
+      query: (reviewId) => ({
+        url: `/community/reviews/${reviewId}/share`,
+        method: 'POST',
+      }),
+    }),
+    postComment: build.mutation({
+      query: ({ reviewId, content }) => ({
+        url: `/community/reviews/${reviewId}/comments`,
+        method: 'POST',
+        body: { content },
+      }),
+      invalidatesTags: (result, error, { reviewId }) => ['Feed', { type: 'Comments', id: reviewId }],
+    }),
   }),
 });
 
 export const { 
-  useGetFeedQuery, 
+  useGetFeedQuery,
+  useGetCommentsQuery,
+  useGetRecipeReviewsQuery,
   useGetUsersQuery, 
   useFollowUserMutation, 
   usePostReviewMutation, 
   useLikeReviewMutation,
   useDeleteReviewMutation,
-  useUpdateReviewMutation
+  useUpdateReviewMutation,
+  useShareReviewMutation,
+  usePostCommentMutation
 } = communityApi;
