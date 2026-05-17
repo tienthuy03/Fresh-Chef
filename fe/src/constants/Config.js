@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 // IMPORTANT: If testing on a real device, replace this with your computer's local IP address (e.g., 'http://192.168.1.5:3000')
 const HOST = Platform.select({
   ios: 'localhost',
-  android: '192.168.11.13', // Your computer's local IP
+  android: '10.0.2.2', // Special IP for Android Emulator to access localhost
 });
 
 export const BASE_URL = `http://${HOST}:3000`;

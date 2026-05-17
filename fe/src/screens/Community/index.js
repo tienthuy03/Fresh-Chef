@@ -5,6 +5,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 import { Colors } from '@constants/Colors';
 import { useTranslation } from 'react-i18next';
+import { useNavigation } from '@react-navigation/native';
 import { 
   useGetFeedQuery, 
   useGetUsersQuery,
@@ -48,6 +49,7 @@ import ReviewModal from '@components/Community/ReviewModal';
 
 const CommunityScreen = () => {
   const { t } = useTranslation();
+  const navigation = useNavigation();
   const [feedType, setFeedType] = React.useState('discover');
   const { data: feedData, isLoading, refetch } = useGetFeedQuery(feedType);
   const { data: usersData } = useGetUsersQuery();
@@ -257,9 +259,20 @@ const CommunityScreen = () => {
               <View style={styles.suggestedSection}>
                 <SectionHeader title={t('suggested_chefs')} />
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.usersScroll}>
-                  {usersData.Data.map((user) => (
+                  {usersData.Data.slice(0, 3).map((user) => (
                     <UserItem key={user.id} item={user} onFollow={handleFollow} />
                   ))}
+                  {usersData.Data.length > 3 && (
+                    <TouchableOpacity 
+                      style={styles.viewAllCard}
+                      onPress={() => navigation.navigate('AllChefs')}
+                    >
+                      <View style={styles.viewAllIconContainer}>
+                        <Ionicons name="ellipsis-horizontal" size={24} color={Colors.primary} />
+                      </View>
+                      <Text style={styles.viewAllText}>{t('view_all', 'Xem tất cả')}</Text>
+                    </TouchableOpacity>
+                  )}
                 </ScrollView>
               </View>
             )}
