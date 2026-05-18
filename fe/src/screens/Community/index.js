@@ -15,7 +15,8 @@ import {
   useDeleteReviewMutation,
   useUpdateReviewMutation,
   useShareReviewMutation,
-  usePostCommentMutation
+  usePostCommentMutation,
+  useGetUserReviewsQuery
 } from '@redux/api/Community';
 import { useGetRecipesQuery } from '@redux/api/Recipes';
 import { useGetMeQuery } from '@redux/api/Auth';
@@ -23,6 +24,7 @@ import { BASE_URL } from '@constants/Config';
 
 const UserItem = ({ item, onFollow }) => {
   const { t } = useTranslation();
+  const isFollowing = item.isFollowing;
   return (
     <View style={styles.userCard}>
       <Image 
@@ -36,8 +38,13 @@ const UserItem = ({ item, onFollow }) => {
       <Text style={styles.userFullName} numberOfLines={1}>
         {item.fullName || item.username}
       </Text>
-      <TouchableOpacity style={styles.followSmallButton} onPress={() => onFollow(item.id)}>
-        <Text style={styles.followSmallButtonText}>{t('connect')}</Text>
+      <TouchableOpacity 
+        style={isFollowing ? styles.followingSmallButton : styles.followSmallButton} 
+        onPress={() => onFollow(item.id)}
+      >
+        <Text style={isFollowing ? styles.followingSmallButtonText : styles.followSmallButtonText}>
+          {isFollowing ? t('following') : t('connect')}
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -51,17 +58,27 @@ const CommunityScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation();
   const [feedType, setFeedType] = React.useState('discover');
-  const { data: feedData, isLoading, refetch } = useGetFeedQuery(feedType);
+  const { data: meData } = useGetMeQuery();
+  const currentUserId = meData?.Data?.id;
+
+  const { data: feedData, isLoading: isLoadingFeed, refetch: refetchFeed } = useGetFeedQuery(feedType, {
+    skip: feedType === 'my-posts'
+  });
+  
+  const { data: myReviewsData, isLoading: isLoadingMyReviews, refetch: refetchMyReviews } = useGetUserReviewsQuery(currentUserId, {
+    skip: !currentUserId || feedType !== 'my-posts'
+  });
+
   const { data: usersData } = useGetUsersQuery();
   const { data: recipesData } = useGetRecipesQuery();
-  const { data: meData } = useGetMeQuery();
   const [followUser] = useFollowUserMutation();
   const [postReview, { isLoading: isPosting }] = usePostReviewMutation();
   const [likeReview] = useLikeReviewMutation();
   const [deleteReview] = useDeleteReviewMutation();
   const [updateReview] = useUpdateReviewMutation();
 
-  const currentUserId = meData?.Data?.id;
+  const isLoading = feedType === 'my-posts' ? isLoadingMyReviews : isLoadingFeed;
+  const feedDataToDisplay = feedType === 'my-posts' ? myReviewsData?.Data : feedData?.Data;
 
   const [modalVisible, setModalVisible] = React.useState(false);
   const [editingReviewId, setEditingReviewId] = React.useState(null);
@@ -190,7 +207,7 @@ const CommunityScreen = () => {
     }
   };
 
-  if (isLoading && !feedData) {
+  if (isLoading && !feedDataToDisplay) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={Colors.primary} />
@@ -209,7 +226,7 @@ const CommunityScreen = () => {
         onSubmit={handlePostReview}
         isLoading={isPosting}
         recipes={recipesData?.Data}
-        initialData={editingReviewId ? feedData?.Data?.find(r => r.id === editingReviewId) : null}
+        initialData={editingReviewId ? feedDataToDisplay?.find(r => r.id === editingReviewId) : null}
       />
 
       <View style={styles.header}>
@@ -220,7 +237,7 @@ const CommunityScreen = () => {
       </View>
 
       <FlatList
-        data={feedData?.Data || []}
+        data={feedDataToDisplay || []}
         renderItem={({ item }) => (
           <FeedItem 
             item={item} 
@@ -234,10 +251,23 @@ const CommunityScreen = () => {
           />
         )}
         keyExtractor={(item) => String(item.id)}
-        onRefresh={refetch}
+        onRefresh={feedType === 'my-posts' ? refetchMyReviews : refetchFeed}
         refreshing={isLoading}
         contentContainerStyle={styles.feedList}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={() => {
+          if (isLoading) return null;
+          return (
+            <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
+              <Ionicons name="images-outline" size={48} color={Colors.border} style={{ marginBottom: 10 }} />
+              <Text style={{ color: Colors.textLight, fontSize: 16, textAlign: 'center' }}>
+                {feedType === 'my-posts' 
+                  ? 'Bạn chưa chia sẻ bài viết nào lên cộng đồng.' 
+                  : 'Không có bài viết nào.'}
+              </Text>
+            </View>
+          );
+        }}
         ListHeaderComponent={() => (
           <View>
             <View style={styles.tabsContainer}>
@@ -252,6 +282,12 @@ const CommunityScreen = () => {
                 onPress={() => setFeedType('discover')}
               >
                 <Text style={[styles.tabText, feedType === 'discover' && styles.activeTabText]}>{t('discover')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.tab, feedType === 'my-posts' && styles.activeTab]}
+                onPress={() => setFeedType('my-posts')}
+              >
+                <Text style={[styles.tabText, feedType === 'my-posts' && styles.activeTabText]}>Của bạn</Text>
               </TouchableOpacity>
             </View>
 

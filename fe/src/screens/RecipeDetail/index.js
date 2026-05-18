@@ -31,6 +31,9 @@ import ReviewModal from '@components/Community/ReviewModal';
 import FeedItem from '@components/Community/FeedItem';
 import { useGetMeQuery } from '@redux/api/Auth';
 import { Share } from 'react-native';
+import { useAddMealPlanMutation } from '@redux/api/MealPlans';
+import MealPlanModal from '@components/Recipe/MealPlanModal';
+import SmartCookingVideoModal from '@components/Recipe/SmartCookingVideoModal';
 
 const RecipeDetailScreen = () => {
   const { t } = useTranslation();
@@ -50,10 +53,13 @@ const RecipeDetailScreen = () => {
   const [followUser] = useFollowUserMutation();
   const [shareReview] = useShareReviewMutation();
   const [postComment] = usePostCommentMutation();
+  const [addMealPlan, { isLoading: isAddingMealPlan }] = useAddMealPlanMutation();
 
   const currentUserId = meData?.Data?.id;
 
   const [modalVisible, setModalVisible] = React.useState(false);
+  const [mealPlanModalVisible, setMealPlanModalVisible] = React.useState(false);
+  const [videoModalVisible, setVideoModalVisible] = React.useState(false);
 
   const recipe = response?.Data;
 
@@ -139,6 +145,20 @@ const RecipeDetailScreen = () => {
     }
   };
 
+  const handleAddMealPlan = async ({ date, mealType }) => {
+    try {
+      await addMealPlan({
+        recipeId,
+        date,
+        mealType,
+      }).unwrap();
+      setMealPlanModalVisible(false);
+      Alert.alert(t('success_title'), t('add_meal_plan_success', 'Đã thêm vào kế hoạch ăn uống!'));
+    } catch (err) {
+      Alert.alert(t('error_title'), t('add_meal_plan_failed', 'Lỗi khi thêm vào kế hoạch ăn uống'));
+    }
+  };
+
   if (isLoading) {
     return (
       <View
@@ -186,6 +206,18 @@ const RecipeDetailScreen = () => {
         isLoading={isPosting}
         initialRecipe={recipe}
       />
+      <MealPlanModal
+        visible={mealPlanModalVisible}
+        onClose={() => setMealPlanModalVisible(false)}
+        onSubmit={handleAddMealPlan}
+        isLoading={isAddingMealPlan}
+        recipeTitle={recipe.title}
+      />
+      <SmartCookingVideoModal
+        visible={videoModalVisible}
+        onClose={() => setVideoModalVisible(false)}
+        recipe={recipe}
+      />
 
       <View style={styles.header}>
         <TouchableOpacity
@@ -210,15 +242,6 @@ const RecipeDetailScreen = () => {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <TouchableOpacity
-          style={styles.shoppingListButton}
-          onPress={() => navigation.navigate('ShoppingList', { recipeId })}
-        >
-          <Ionicons name="cart-outline" size={20} color={Colors.white} />
-          <Text style={styles.shoppingListButtonText}>
-            {t('view_shopping_list', 'Xem danh sách đi chợ')}
-          </Text>
-        </TouchableOpacity>
         <Text style={styles.title}>{recipe.title}</Text>
 
         <View style={styles.metaContainer}>
@@ -235,6 +258,48 @@ const RecipeDetailScreen = () => {
             <Text style={styles.metaText}>{recipe.servings || '2 người'}</Text>
           </View>
         </View>
+
+        {/* Side-by-side Compact Action Buttons */}
+        <View style={styles.actionButtonsRow}>
+          <TouchableOpacity
+            style={styles.compactActionButton}
+            onPress={() => navigation.navigate('ShoppingList', { recipeId })}
+          >
+            <Ionicons name="cart-outline" size={18} color={Colors.white} />
+            <Text style={styles.compactActionButtonText} numberOfLines={1}>
+              {t('view_shopping_list', 'Đi chợ')}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.compactActionButton, { backgroundColor: Colors.secondary }]}
+            onPress={() => setMealPlanModalVisible(true)}
+          >
+            <Ionicons name="calendar-outline" size={18} color={Colors.white} />
+            <Text style={styles.compactActionButtonText} numberOfLines={1}>
+              {t('add_to_meal_plan', 'Lên kế hoạch')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={styles.videoBanner}
+          onPress={() => setVideoModalVisible(true)}
+        >
+          <Image source={{ uri: recipe.image_url }} style={styles.videoBannerImage} />
+          <View style={styles.videoBannerOverlay}>
+            <View style={styles.videoPlayIconBg}>
+              <Ionicons name="play" size={20} color={Colors.white} />
+            </View>
+            <View style={styles.videoBannerTextContainer}>
+              <View style={styles.videoBannerBadge}>
+                <Text style={styles.videoBannerBadgeText}>AI STEP SYNC</Text>
+              </View>
+              <Text style={styles.videoBannerTitle}>Xem Video Hướng Dẫn Từng Bước</Text>
+              <Text style={styles.videoBannerSubtitle}>Tự động đồng bộ các bước làm món</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>
           {t('ingredients', 'Nguyên liệu')}

@@ -85,5 +85,18 @@
   "favorites": "Favorites",
   "healthy": "Healthy",
   "spicy": "Spicy",
-  "clear_all": "Clear All"
+  "clear_all": "Clear All",
+  "add_to_meal_plan_title": "Plan Meals",
+  "select_date": "Select Cooking Date",
+  "select_meal_type": "Select Meal Time",
+  "breakfast": "Breakfast",
+  "lunch": "Lunch",
+  "dinner": "Dinner",
+  "snack": "Snack",
+  "confirm": "Add to Meal Plan",
+  "today": "Today",
+  "tomorrow": "Tomorrow",
+  "add_to_meal_plan": "Add to Plan",
+  "add_meal_plan_success": "Recipe added to your meal plan!",
+  "add_meal_plan_failed": "Failed to add recipe to meal plan"
 }

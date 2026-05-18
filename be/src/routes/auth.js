@@ -47,21 +47,12 @@ router.post('/register', async (req, res) => {
     if (user) {
       return res.status(400).json({
         Success: false,
-        Message: 'Username already exists',
-        Errors: ['Username already exists'],
+        Message: 'Tên đăng nhập đã tồn tại',
+        Errors: ['Tên đăng nhập đã tồn tại'],
       });
     }
 
-    if (finalEmail) {
-      const emailUser = await User.findOne({ where: { email: finalEmail } });
-      if (emailUser) {
-        return res.status(400).json({
-          Success: false,
-          Message: 'Email already exists',
-          Errors: ['Email already exists'],
-        });
-      }
-    }
+
 
     const hashedPassword = await bcrypt.hash(password, 10);
     user = await User.create({ 
@@ -89,7 +80,7 @@ router.post('/register', async (req, res) => {
     const errors = err.errors ? err.errors.map(e => e.message) : [err.message];
     res.status(400).json({ // Chuyển thành 400 để Frontend hiển thị được nội dung lỗi
       Success: false,
-      Message: errors[0] || 'Registration failed',
+      Message: errors[0] || 'Đăng ký thất bại',
       Errors: errors,
     });
   }
@@ -163,8 +154,8 @@ router.post('/login', async (req, res) => {
       console.log(`Login failed: User ${username} not found`);
       return res.status(400).json({
         Success: false,
-        Message: 'Invalid credentials',
-        Errors: ['Invalid credentials'],
+        Message: 'Tên đăng nhập không tồn tại',
+        Errors: ['Tên đăng nhập không tồn tại'],
         Data: null,
         Meta: null
       });
@@ -175,8 +166,8 @@ router.post('/login', async (req, res) => {
       console.log(`Login failed: Password mismatch for user ${username}`);
       return res.status(400).json({
         Success: false,
-        Message: 'Invalid credentials',
-        Errors: ['Invalid credentials'],
+        Message: 'Mật khẩu không chính xác',
+        Errors: ['Mật khẩu không chính xác'],
         Data: null,
         Meta: null
       });
@@ -253,12 +244,12 @@ router.post('/change-password', async (req, res) => {
   try {
     const user = await User.findOne({ where: { username } });
     if (!user) {
-      return res.status(404).json({ Success: false, Message: 'User not found', Errors: ['User not found'] });
+      return res.status(404).json({ Success: false, Message: 'Không tìm thấy người dùng', Errors: ['Không tìm thấy người dùng'] });
     }
 
     const isMatch = await bcrypt.compare(oldPassword, user.password);
     if (!isMatch) {
-      return res.status(400).json({ Success: false, Message: 'Invalid old password', Errors: ['Invalid old password'] });
+      return res.status(400).json({ Success: false, Message: 'Mật khẩu cũ không chính xác', Errors: ['Mật khẩu cũ không chính xác'] });
     }
 
     user.password = await bcrypt.hash(newPassword, 10);
@@ -313,7 +304,7 @@ router.post('/refresh-token', async (req, res) => {
       }
     });
   } catch (err) {
-    res.status(403).json({ Success: false, Message: 'Token expired or invalid' });
+    res.status(403).json({ Success: false, Message: 'Phiên đăng nhập hết hạn hoặc không hợp lệ' });
   }
 });
 
@@ -338,7 +329,7 @@ router.post('/logout', authMiddleware, async (req, res) => {
     }
     res.json({ Success: true, Message: 'Logged out successfully' });
   } catch (err) {
-    res.status(500).json({ Success: false, Message: 'Server error' });
+    res.status(500).json({ Success: false, Message: 'Lỗi máy chủ' });
   }
 });
 
@@ -407,7 +398,7 @@ router.get('/me', authMiddleware, async (req, res) => {
       attributes: { exclude: ['password'] }
     });
 
-    if (!user) return res.status(404).json({ Success: false, Message: 'User not found' });
+    if (!user) return res.status(404).json({ Success: false, Message: 'Không tìm thấy người dùng' });
 
     // Fetch stats
     const followerCount = await user.countFollowers();
@@ -478,7 +469,7 @@ router.put('/profile', authMiddleware, upload.single('avatar'), async (req, res)
     const { fullName, bio } = req.body;
     const user = await User.findByPk(req.user.id);
 
-    if (!user) return res.status(404).json({ Success: false, Message: 'User not found' });
+    if (!user) return res.status(404).json({ Success: false, Message: 'Không tìm thấy người dùng' });
 
     if (fullName !== undefined) user.fullName = fullName;
     if (bio !== undefined) user.bio = bio;
@@ -501,7 +492,7 @@ router.put('/profile', authMiddleware, upload.single('avatar'), async (req, res)
     });
   } catch (err) {
     console.error('Profile update error:', err);
-    res.status(500).json({ Success: false, Message: 'Server error' });
+    res.status(500).json({ Success: false, Message: 'Lỗi hệ thống khi cập nhật hồ sơ' });
   }
 });
 

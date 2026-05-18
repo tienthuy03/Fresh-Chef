@@ -159,9 +159,17 @@ router.get('/feed', optionalAuth, async (req, res) => {
 router.get('/users', optionalAuth, async (req, res) => {
   try {
     const whereClause = {};
+    let followingIds = [];
+    
     if (req.user) {
       const { Op } = require('sequelize');
       whereClause.id = { [Op.ne]: req.user.id }; // Exclude current user
+      
+      const following = await Follow.findAll({
+        where: { followerId: req.user.id },
+        attributes: ['followingId']
+      });
+      followingIds = following.map(f => f.followingId);
     }
 
     const users = await User.findAll({
@@ -172,7 +180,10 @@ router.get('/users', optionalAuth, async (req, res) => {
 
     res.json({
       Success: true,
-      Data: users
+      Data: users.map(user => ({
+        ...user.toJSON(),
+        isFollowing: followingIds.includes(user.id)
+      }))
     });
   } catch (err) {
     res.status(500).json({ Success: false, Message: 'Server error' });
@@ -200,6 +211,54 @@ router.get('/recipes/:recipeId/reviews', async (req, res) => {
     const reviews = await Review.findAll({
       where: { RecipeId: req.params.recipeId },
       include: [{ model: User, attributes: ['id', 'username', 'fullName', 'avatar'] }],
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.json({
+      Success: true,
+      Data: reviews.map(rev => {
+        let parsedImages = [];
+        try {
+          parsedImages = rev.images ? JSON.parse(rev.images) : [];
+        } catch (e) {
+          parsedImages = [];
+        }
+        return {
+          ...rev.toJSON(),
+          images: parsedImages,
+          comments: rev.commentsCount || 0
+        };
+      })
+    });
+  } catch (err) {
+    res.status(500).json({ Success: false, Message: 'Server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/community/users/{userId}/reviews:
+ *   get:
+ *     summary: Get all reviews posted by a specific user
+ *     tags: [Community]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: List of user reviews
+ */
+router.get('/users/:userId/reviews', async (req, res) => {
+  try {
+    const reviews = await Review.findAll({
+      where: { UserId: req.params.userId },
+      include: [
+        { model: User, attributes: ['id', 'username', 'fullName', 'avatar'] },
+        { model: Recipe, attributes: ['title', 'id'] }
+      ],
       order: [['createdAt', 'DESC']]
     });
 

@@ -69,7 +69,7 @@
   "browse_by_cuisine": "Phong cách ẩm thực",
   "community": "Cộng đồng",
   "cookbook": "Sổ tay nấu ăn",
-  "following": "Đang theo dõi",
+  "following": "Đã kết nối",
   "discover": "Khám phá",
   "suggested_chefs": "Đầu bếp gợi ý",
   "connect": "Kết nối",
@@ -116,5 +116,18 @@
   "favorites": "Yêu thích",
   "healthy": "Sống khỏe",
   "spicy": "Cay nồng",
-  "clear_all": "Xóa tất cả"
+  "clear_all": "Xóa tất cả",
+  "add_to_meal_plan_title": "Lên kế hoạch nấu ăn",
+  "select_date": "Chọn ngày nấu",
+  "select_meal_type": "Chọn bữa ăn",
+  "breakfast": "Bữa sáng",
+  "lunch": "Bữa trưa",
+  "dinner": "Bữa tối",
+  "snack": "Ăn vặt",
+  "confirm": "Thêm vào kế hoạch",
+  "today": "Hôm nay",
+  "tomorrow": "Ngày mai",
+  "add_to_meal_plan": "Thêm vào kế hoạch",
+  "add_meal_plan_success": "Đã thêm vào kế hoạch ăn uống!",
+  "add_meal_plan_failed": "Lỗi khi thêm vào kế hoạch ăn uống"
 }

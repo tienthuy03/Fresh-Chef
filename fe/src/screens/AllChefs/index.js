@@ -62,7 +62,7 @@ const AllChefsScreen = () => {
         onPress={() => handleFollow(item.id)}
       >
         <Text style={[styles.followButtonText, item.isFollowing && styles.followingButtonText]}>
-          {item.isFollowing ? t('following_status', 'Đang theo dõi') : t('connect', 'Kết nối')}
+          {item.isFollowing ? t('following_status', 'Đã kết nối') : t('connect', 'Kết nối')}
         </Text>
       </TouchableOpacity>
     </View>

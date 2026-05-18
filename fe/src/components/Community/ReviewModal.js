@@ -157,7 +157,16 @@ const ReviewModal = ({
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {existingImages.map((img, index) => (
                   <View key={`existing-${index}`} style={styles.previewImageContainer}>
-                    <Image source={{ uri: `${BASE_URL}${img}` }} style={styles.previewImage} />
+                    <Image 
+                      source={{ 
+                        uri: img 
+                          ? img.startsWith('http') 
+                            ? img 
+                            : `${BASE_URL}${img}`
+                          : 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600&auto=format&fit=crop'
+                      }} 
+                      style={styles.previewImage} 
+                    />
                     <TouchableOpacity 
                       style={styles.removeImageBtn} 
                       onPress={() => setExistingImages(existingImages.filter((_, i) => i !== index))}

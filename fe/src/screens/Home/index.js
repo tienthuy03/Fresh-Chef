@@ -71,11 +71,15 @@ const HomeScreen = () => {
 
     // Shuffle or just pick different ranges to avoid duplication
     const shuffled = [...recipes].sort(() => 0.5 - Math.random());
+    
+    // If total recipe count is small (<= 5), allow them to overlap in both sections so the home screen isn't empty.
+    const filteredForGrid = recipes.length > 5
+      ? recipes.filter(r => !shuffled.slice(0, 3).some(c => c.id === r.id))
+      : recipes;
+
     return {
       carouselRecipes: shuffled.slice(0, 5),
-      gridRecipes: recipes
-        .filter(r => !shuffled.slice(0, 5).some(c => c.id === r.id))
-        .slice(0, 10),
+      gridRecipes: filteredForGrid.slice(0, 10),
     };
   }, [recipes]);
 

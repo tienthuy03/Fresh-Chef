@@ -9,6 +9,7 @@ const recipeRoutes = require('./routes/recipes');
 const communityRoutes = require('./routes/community');
 const preferenceRoutes = require('./routes/preferences');
 const shoppingListRoutes = require('./routes/shoppingList');
+const mealPlanRoutes = require('./routes/mealPlans');
 
 dotenv.config();
 
@@ -55,6 +56,7 @@ app.use('/api/recipes', recipeRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/preferences', preferenceRoutes);
 app.use('/api/shopping-list', shoppingListRoutes);
+app.use('/api/meal-plans', mealPlanRoutes);
 
 // Database Sync & Server Start
 sequelize.sync().then(async () => {

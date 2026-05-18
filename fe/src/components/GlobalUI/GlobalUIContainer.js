@@ -15,7 +15,12 @@ const GlobalUIContainer = () => {
   const isVisible = isLoading || alert.visible;
 
   return (
-    <Modal transparent visible={isVisible} animationType="fade">
+    <Modal 
+      transparent 
+      visible={isVisible} 
+      animationType="fade"
+      onRequestClose={() => dispatch(hideAlert())}
+    >
       <View style={styles.overlay}>
         {isLoading ? (
           <View style={styles.card}>
@@ -31,7 +36,9 @@ const GlobalUIContainer = () => {
             ]}>
               {alert.title || (alert.type === 'error' ? t('error_title') : t('success_title'))}
             </Text>
-            <Text style={styles.content}>{alert.content}</Text>
+            <Text style={styles.content}>
+              {alert.content ? String(alert.content) : ''}
+            </Text>
             <TouchableOpacity 
               style={[
                 styles.button,
@@ -68,7 +75,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
-    elevation: 5,
+    elevation: 999,
+    zIndex: 999,
   },
   loadingText: {
     marginTop: Spacing.sm,

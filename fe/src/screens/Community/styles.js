@@ -262,6 +262,19 @@ export default StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
+  followingSmallButton: {
+    backgroundColor: '#F1F3F5',
+    paddingHorizontal: 15,
+    paddingVertical: 6,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  followingSmallButtonText: {
+    color: Colors.textLight,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
   viewAllCard: {
     width: 130,
     backgroundColor: Colors.white,

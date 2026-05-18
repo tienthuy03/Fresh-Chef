@@ -18,6 +18,7 @@ const ShoppingItem = require('./ShoppingItem');
 const Follow = require('./Follow');
 const ReviewLike = require('./ReviewLike');
 const Comment = require('./Comment');
+const MealPlan = require('./MealPlan');
 
 // --- ASSOCIATIONS ---
 
@@ -63,6 +64,14 @@ User.belongsToMany(User, {
   otherKey: 'followingId' 
 });
 
+// User <-> MealPlan
+User.hasMany(MealPlan, { foreignKey: 'userId' });
+MealPlan.belongsTo(User, { foreignKey: 'userId' });
+
+// Recipe <-> MealPlan
+Recipe.hasMany(MealPlan, { foreignKey: 'recipeId' });
+MealPlan.belongsTo(Recipe, { foreignKey: 'recipeId' });
+
 // Re-export all models for easier access
 module.exports = {
   sequelize,
@@ -73,5 +82,6 @@ module.exports = {
   ShoppingItem,
   Follow,
   ReviewLike,
-  Comment
+  Comment,
+  MealPlan
 };

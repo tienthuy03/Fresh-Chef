@@ -102,6 +102,13 @@ export const communityApi = apiService.injectEndpoints({
       }),
       invalidatesTags: (result, error, { reviewId }) => ['Feed', { type: 'Comments', id: reviewId }],
     }),
+    getUserReviews: build.query({
+      query: (userId) => ({
+        url: `/community/users/${userId}/reviews`,
+        method: 'GET',
+      }),
+      providesTags: (result, error, userId) => [{ type: 'Feed', id: `user-${userId}` }],
+    }),
   }),
 });
 
@@ -116,5 +123,6 @@ export const {
   useDeleteReviewMutation,
   useUpdateReviewMutation,
   useShareReviewMutation,
-  usePostCommentMutation
+  usePostCommentMutation,
+  useGetUserReviewsQuery
 } = communityApi;

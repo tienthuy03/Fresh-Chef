@@ -22,6 +22,7 @@ import SectionHeader from '@components/GlobalUI/SectionHeader';
 import PrimaryButton from '@components/GlobalUI/PrimaryButton';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { BASE_URL } from '@constants/Config';
+import { apiService } from '@redux/apiService';
 
 
 
@@ -45,6 +46,7 @@ const ProfileScreen = ({ navigation }) => {
 
   const handleLogout = () => {
     dispatch(logOut());
+    dispatch(apiService.util.resetApiState());
   };
 
   const handleEditAvatar = async () => {

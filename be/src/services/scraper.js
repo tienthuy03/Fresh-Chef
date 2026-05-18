@@ -84,7 +84,11 @@ async function getRecipeDetail(url, category) {
     const image_url = $('img[id="recipe_image"]').attr('src');
 
     // Save to database
-    await Recipe.upsert({
+    const existingRecipe = await Recipe.findOne({ where: { cookpad_id } });
+    let recipe;
+    let isNew = false;
+    
+    const recipeData = {
       cookpad_id,
       title,
       ingredients: JSON.stringify(ingredients),
@@ -95,7 +99,36 @@ async function getRecipeDetail(url, category) {
       author,
       rating,
       category
-    });
+    };
+
+    if (existingRecipe) {
+      await existingRecipe.update(recipeData);
+      recipe = existingRecipe;
+    } else {
+      recipe = await Recipe.create(recipeData);
+      isNew = true;
+    }
+
+    if (isNew) {
+      const { User, Review } = require('../models');
+      const users = await User.findAll();
+      if (users.length > 0) {
+        const randomUser = users[Math.floor(Math.random() * users.length)];
+        
+        await Review.create({
+          content: `Vừa chia sẻ công thức làm món "${title}" siêu ngon và chuẩn vị. Cả nhà cùng vào xem chi tiết và trổ tài nha!`,
+          rating: 5,
+          images: JSON.stringify([image_url]),
+          UserId: randomUser.id,
+          RecipeId: recipe.id
+        });
+
+        randomUser.sharedRecipesCount = (randomUser.sharedRecipesCount || 0) + 1;
+        await randomUser.save();
+        
+        console.log(`Automatically assigned recipe "${title}" to user: ${randomUser.username}`);
+      }
+    }
 
     console.log(`Scraped & Saved: ${title}`);
   } catch (err) {

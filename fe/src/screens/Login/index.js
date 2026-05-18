@@ -9,17 +9,18 @@ import {
   ScrollView,
 } from 'react-native';
 import { useDispatch } from 'react-redux';
-import { showLoading, hideLoading, showError } from '@redux/slices/uiSlice';
+import { showLoading, hideLoading, showError, hideAlert } from '@redux/slices/uiSlice';
 import { setCredentials } from '@redux/slices/authSlice';
 import { useLoginMutation } from '@redux/api/Auth';
 import { useTranslation } from 'react-i18next';
+import { apiService } from '@redux/apiService';
 import styles from './styles';
 
 const LoginScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const dispatch = useDispatch();
-  const [loginTrigger] = useLoginMutation();
-  const [username, setUsername] = useState('d');
+  const [loginTrigger, { isLoading: isLoginLoading }] = useLoginMutation();
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = async () => {
@@ -33,6 +34,8 @@ const LoginScreen = ({ navigation }) => {
       const response = await loginTrigger({ username, password }).unwrap();
       
       if (response.Success) {
+        dispatch(hideAlert());
+        dispatch(apiService.util.resetApiState());
         dispatch(setCredentials({
           user: response.Data.User,
           token: response.Data.Token || response.Data.token,
@@ -85,7 +88,11 @@ const LoginScreen = ({ navigation }) => {
             />
           </View>
 
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+          <TouchableOpacity 
+            style={[styles.loginButton, isLoginLoading && { opacity: 0.7 }]} 
+            onPress={handleLogin}
+            disabled={isLoginLoading}
+          >
             <Text style={styles.loginButtonText}>{t('login')}</Text>
           </TouchableOpacity>
 

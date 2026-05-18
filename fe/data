@@ -1,0 +1,32 @@
+[
+  {
+    "fullName": "Nguyễn Văn An",
+    "username": "nguyenvanan",
+    "email": "an.nguyen@gmail.com",
+    "password": "123456"
+  },
+  {
+    "fullName": "Trần Minh Quân",
+    "username": "tranminhquan",
+    "email": "quan.tran@gmail.com",
+    "password": "123456"
+  },
+  {
+    "fullName": "Lê Hoàng Phúc",
+    "username": "lehoangphuc",
+    "email": "phuc.le@gmail.com",
+    "password": "123456"
+  },
+  {
+    "fullName": "Phạm Gia Huy",
+    "username": "phamgiahuy",
+    "email": "huy.pham@gmail.com",
+    "password": "123456"
+  },
+  {
+    "fullName": "Đỗ Khánh Linh",
+    "username": "dokhanhlinh",
+    "email": "linh.do@gmail.com",
+    "password": "123456"
+  }
+]

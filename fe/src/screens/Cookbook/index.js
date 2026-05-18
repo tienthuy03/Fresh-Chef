@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import RecipeListItem from '@components/Recipe/RecipeListItem';
 import SectionHeader from '@components/GlobalUI/SectionHeader';
+import MealPlanSection from './MealPlanSection';
 import {
   useGetFavoritesQuery,
   useToggleFavoriteMutation,
@@ -146,51 +147,7 @@ const CookbookScreen = () => {
               renderItem={renderSavedItem}
               keyExtractor={item => String(item.id)}
               contentContainerStyle={styles.listContent}
-              ListHeaderComponent={() => (
-                <View style={styles.collectionsSection}>
-                  <SectionHeader title={t('my_collections')} />
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.collectionsList}
-                  >
-                    <TouchableOpacity style={styles.collectionCard}>
-                      <View
-                        style={[
-                          styles.collectionIcon,
-                          { backgroundColor: '#FFE66D' },
-                        ]}
-                      >
-                        <Ionicons name="star" size={24} color="#F39C12" />
-                      </View>
-                      <Text style={styles.collectionName}>{t('favorites')}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.collectionCard}>
-                      <View
-                        style={[
-                          styles.collectionIcon,
-                          { backgroundColor: '#4ECDC4' },
-                        ]}
-                      >
-                        <Ionicons name="leaf" size={24} color="#16A085" />
-                      </View>
-                      <Text style={styles.collectionName}>{t('healthy')}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.collectionCard}>
-                      <View
-                        style={[
-                          styles.collectionIcon,
-                          { backgroundColor: '#FF6B6B' },
-                        ]}
-                      >
-                        <Ionicons name="flame" size={24} color="#C0392B" />
-                      </View>
-                      <Text style={styles.collectionName}>{t('spicy')}</Text>
-                    </TouchableOpacity>
-                  </ScrollView>
-                  <SectionHeader title={t('all_saved')} />
-                </View>
-              )}
+              ListHeaderComponent={() => <MealPlanSection />}
             />
           )
         ) : isShopLoading ? (

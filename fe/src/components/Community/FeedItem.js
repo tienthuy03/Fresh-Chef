@@ -117,7 +117,13 @@ const FeedItem = ({
             {item.images.map((img, index) => (
               <Image
                 key={index}
-                source={{ uri: `${BASE_URL}${img}` }}
+                source={{
+                  uri: img
+                    ? img.startsWith('http')
+                      ? img
+                      : `${BASE_URL}${img}`
+                    : 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600&auto=format&fit=crop'
+                }}
                 style={styles.culinaryImage}
               />
             ))}
@@ -194,7 +200,7 @@ const FeedItem = ({
       <View style={styles.culinaryStats}>
         <View style={styles.statItem}>
           <MaterialCommunityIcons
-            name={foodIcon}
+            name={'fire'}
             size={18}
             color={item.isLiked ? '#FF4500' : Colors.textLight}
           />
@@ -251,7 +257,7 @@ const FeedItem = ({
           onPress={() => onLike(item.id)}
         >
           <MaterialCommunityIcons
-            name={item.isLiked ? `${foodIcon}-outline` : 'fire'}
+            name={'fire'}
             size={22}
             color={item.isLiked ? Colors.white : Colors.text}
           />
