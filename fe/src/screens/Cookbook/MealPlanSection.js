@@ -141,6 +141,18 @@ const MealPlanSection = () => {
         onActionPress={() => setIsModalVisible(true)}
         actionText={'+ Thêm món'}
       />
+      
+      <View style={styles.actionBar}>
+        <Text style={styles.weekLabel}>Thực đơn tuần này</Text>
+        <TouchableOpacity 
+          style={styles.smartCartButton}
+          onPress={() => navigation.navigate('SmartShoppingList', { startDate, endDate })}
+        >
+          <Ionicons name="sparkles" size={13} color={Colors.white} />
+          <Text style={styles.smartCartButtonText}>Đi chợ tuần</Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -599,6 +611,37 @@ const styles = StyleSheet.create({
     color: Colors.black,
     marginLeft: 8,
     padding: 0,
+  },
+  actionBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  weekLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#888',
+  },
+  smartCartButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  smartCartButtonText: {
+    color: Colors.white,
+    fontSize: 12,
+    fontWeight: '700',
+    marginLeft: 4,
   },
 });
 

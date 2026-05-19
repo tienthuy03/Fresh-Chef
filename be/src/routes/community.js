@@ -60,6 +60,15 @@ router.post('/reviews', auth, upload.array('images', 5), async (req, res) => {
       RecipeId: recipeId
     });
 
+    // --- GAMIFICATION: Award XP for writing a review ---
+    try {
+      const { awardXp } = require('../utils/gamificationHelper');
+      await awardXp(req.user.id, 30, 'write_review');
+    } catch (xpErr) {
+      console.error('Failed to award gamification XP:', xpErr);
+    }
+    // ---------------------------------------------------
+
     res.status(201).json({
       Success: true,
       Message: 'Review posted successfully',

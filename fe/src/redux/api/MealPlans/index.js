@@ -27,6 +27,13 @@ export const mealPlanApi = apiService.injectEndpoints({
       }),
       invalidatesTags: ['MealPlans'],
     }),
+    getMealPlanShoppingList: build.query({
+      query: ({ startDate, endDate }) => ({
+        url: `${MealPlanEndPoint.base}/shopping-list`,
+        params: { startDate, endDate }
+      }),
+      providesTags: ['MealPlans', 'ShoppingList'],
+    }),
   }),
 });
 
@@ -34,4 +41,5 @@ export const {
   useGetMealPlansQuery,
   useAddMealPlanMutation,
   useRemoveMealPlanMutation,
+  useGetMealPlanShoppingListQuery,
 } = mealPlanApi;

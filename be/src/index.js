@@ -10,6 +10,10 @@ const communityRoutes = require('./routes/community');
 const preferenceRoutes = require('./routes/preferences');
 const shoppingListRoutes = require('./routes/shoppingList');
 const mealPlanRoutes = require('./routes/mealPlans');
+const savedShoppingListRoutes = require('./routes/savedShoppingLists');
+const aiAssistantRoutes = require('./routes/aiAssistant');
+const nutritionRoutes = require('./routes/nutrition');
+const gamificationRoutes = require('./routes/gamification');
 
 dotenv.config();
 
@@ -57,6 +61,10 @@ app.use('/api/community', communityRoutes);
 app.use('/api/preferences', preferenceRoutes);
 app.use('/api/shopping-list', shoppingListRoutes);
 app.use('/api/meal-plans', mealPlanRoutes);
+app.use('/api/saved-shopping-lists', savedShoppingListRoutes);
+app.use('/api/ai-assistant', aiAssistantRoutes);
+app.use('/api/nutrition', nutritionRoutes);
+app.use('/api/gamification', gamificationRoutes);
 
 // Database Sync & Server Start
 sequelize.sync().then(async () => {

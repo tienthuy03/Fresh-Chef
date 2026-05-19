@@ -2,6 +2,7 @@ const express = require('express');
 const { Recipe, User, sequelize } = require('../models');
 const { Op, Sequelize } = require('sequelize');
 const { scrapeRecipes } = require('../services/scraper');
+const { getRecipeNutrition } = require('../utils/nutritionHelper');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
@@ -31,7 +32,15 @@ router.get('/search', async (req, res) => {
       ]
     }
   });
-  res.json({ Success: true, Data: recipes });
+  res.json({
+    Success: true,
+    Data: recipes.map(r => ({
+      ...r.toJSON(),
+      ingredients: JSON.parse(r.ingredients),
+      steps: JSON.parse(r.steps),
+      nutrition: getRecipeNutrition(r)
+    }))
+  });
 });
 
 /**
@@ -67,7 +76,15 @@ router.get('/trending', async (req, res) => {
     limit: 20,
     order: Sequelize.literal('RANDOM()')
   });
-  res.json({ Success: true, Data: recipes });
+  res.json({
+    Success: true,
+    Data: recipes.map(r => ({
+      ...r.toJSON(),
+      ingredients: JSON.parse(r.ingredients),
+      steps: JSON.parse(r.steps),
+      nutrition: getRecipeNutrition(r)
+    }))
+  });
 });
 
 /**
@@ -86,7 +103,15 @@ router.get('/favorites', auth, async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id);
     const favorites = await user.getFavoriteRecipes();
-    res.json({ Success: true, Data: favorites });
+    res.json({
+      Success: true,
+      Data: favorites.map(r => ({
+        ...r.toJSON(),
+        ingredients: JSON.parse(r.ingredients),
+        steps: JSON.parse(r.steps),
+        nutrition: getRecipeNutrition(r)
+      }))
+    });
   } catch (err) {
     res.status(500).json({ Success: false, Message: 'Server error' });
   }
@@ -110,7 +135,8 @@ router.get('/', async (req, res) => {
       Data: recipes.map(r => ({
         ...r.toJSON(),
         ingredients: JSON.parse(r.ingredients),
-        steps: JSON.parse(r.steps)
+        steps: JSON.parse(r.steps),
+        nutrition: getRecipeNutrition(r)
       }))
     });
   } catch (err) {
@@ -146,7 +172,8 @@ router.get('/:id', async (req, res) => {
       Data: {
         ...recipe.toJSON(),
         ingredients: JSON.parse(recipe.ingredients),
-        steps: JSON.parse(recipe.steps)
+        steps: JSON.parse(recipe.steps),
+        nutrition: getRecipeNutrition(recipe)
       }
     });
   } catch (err) {

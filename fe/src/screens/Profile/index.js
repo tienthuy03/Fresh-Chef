@@ -16,6 +16,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '@constants/Colors';
 import { useTranslation } from 'react-i18next';
 import { useGetMeQuery, useUpdateProfileMutation, useChangePasswordMutation } from '@redux/api/Auth';
+import { useGetGamificationProfileQuery } from '@redux/api/Gamification';
 import { useDispatch } from 'react-redux';
 import { logOut } from '@redux/slices/authSlice';
 import SectionHeader from '@components/GlobalUI/SectionHeader';
@@ -30,11 +31,13 @@ const ProfileScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const dispatch = useDispatch();
   const { data: profileData, isLoading, refetch } = useGetMeQuery();
+  const { data: gamificationData, error: gamificationError, isLoading: gamificationLoading } = useGetGamificationProfileQuery();
   const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation();
   const [changePassword, { isLoading: isChangingPassword }] = useChangePasswordMutation();
   
   const user = profileData?.Data || {};
   const stats = user.Stats || { Followers: 0, Following: 0, Recipes: 0 };
+  const gamificationProfile = gamificationData?.Data || null;
 
   // Modals visibility
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -191,6 +194,26 @@ const ProfileScreen = ({ navigation }) => {
               </View>
             </View>
 
+            {gamificationLoading && <ActivityIndicator color={Colors.primary} style={{ marginTop: 15 }} />}
+            {gamificationError && (
+               <Text style={{ color: 'red', marginTop: 15, textAlign: 'center' }}>
+                 Lỗi tải XP: {JSON.stringify(gamificationError)}
+               </Text>
+            )}
+            
+            {gamificationProfile && (
+              <View style={styles.gamificationCard}>
+                <View style={styles.gamificationHeader}>
+                  <Text style={styles.chefTitle}>{gamificationProfile.profile.title}</Text>
+                  <Text style={styles.chefLevel}>Lv. {gamificationProfile.profile.level}</Text>
+                </View>
+                <View style={styles.xpBarBackground}>
+                  <View style={[styles.xpBarFill, { width: `${gamificationProfile.progress.percentComplete}%` }]} />
+                </View>
+                <Text style={styles.xpText}>{gamificationProfile.progress.currentXp} / {gamificationProfile.progress.nextLevelXp} XP</Text>
+              </View>
+            )}
+
             <PrimaryButton 
               title="Chỉnh sửa hồ sơ" 
               onPress={openEditModal} 
@@ -244,6 +267,17 @@ const ProfileScreen = ({ navigation }) => {
             </View>
           </View>
         )}
+
+        <View style={styles.section}>
+          <SectionHeader title="Dinh dưỡng & Mục tiêu" />
+          <MenuItem 
+            icon="fitness-outline" 
+            title="Kế hoạch dinh dưỡng (Nutrition)" 
+            subtitle="Tính Calo, Macro & thực đơn lành mạnh" 
+            color="#20c997"
+            onPress={() => navigation.navigate('NutritionPlanner')}
+          />
+        </View>
 
         <View style={styles.section}>
           <SectionHeader title="Tài khoản" />

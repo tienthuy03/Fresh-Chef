@@ -57,7 +57,7 @@ export const communityApi = apiService.injectEndpoints({
         method: 'POST',
         body: formData,
       }),
-      invalidatesTags: ['Feed', 'RecipeReviews'],
+      invalidatesTags: ['Feed', 'RecipeReviews', 'Gamification'],
     }),
     followUser: build.mutation({
       query: (userId) => ({

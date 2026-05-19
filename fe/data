@@ -30,3 +30,38 @@
     "password": "123456"
   }
 ]
+
+
+🥫 Tủ Lạnh Thông Minh (Smart Fridge - "Có gì nấu nấy")
+Ý tưởng: Người dùng sẽ tích chọn các nguyên liệu hiện có trong bếp của họ (Ví dụ: Thịt gà, nấm, cà rốt). Ứng dụng sẽ tự động phân tích và gợi ý ngay những công thức nấu được ngay lập tức hoặc chỉ thiếu 1-2 nguyên liệu phụ.
+Tại sao đắt giá: Giải quyết nỗi lo lớn nhất của người nội trợ mỗi ngày: "Hôm nay ăn gì với đống đồ còn thừa trong tủ lạnh?". Tính năng này giúp tiết kiệm tiền bạc, tránh lãng phí thực phẩm và cực kỳ thực tế.
+Cách triển khai: Viết một thuật toán so khớp chuỗi nguyên liệu đơn giản ở backend (GET /api/recipes/match-ingredients) để trả về các công thức có tỷ lệ nguyên liệu trùng khớp cao nhất.
+2. 📅 Đồng bộ Kế hoạch Nấu ăn & Danh sách đi chợ tự động
+Ý tưởng: Hiện tại chúng ta có mục Lên kế hoạch tuần (Meal Plan) và Danh sách đi chợ (Shopping List) hoạt động độc lập.
+Tại sao đắt giá: Hãy kết nối chúng lại thành một vòng lặp thông minh: Khi người dùng thêm các món ăn cho cả tuần vào Lịch trình nấu ăn, hệ thống sẽ tự động bóc tách nguyên liệu của tất cả các món đó, gộp các nguyên liệu trùng nhau (Ví dụ: Món A cần 200g thịt bò, món B cần 300g thịt bò -> Gộp lại thành "500g thịt bò") và tự động điền vào Danh sách đi chợ!
+Cách triển khai: Viết một service ở backend. Khi người dùng bấm "Tạo danh sách mua sắm từ lịch tuần", backend sẽ duyệt các Recipe trong MealPlan, cộng dồn khối lượng nguyên liệu và tạo bản ghi trong bảng ShoppingList.
+3. 🤖 Trợ Lý Đầu Bếp Ảo AI (AI Culinary Assistant)
+Ý tưởng: Tích hợp một chatbot AI ngay trong app (sử dụng API miễn phí của Gemini). Người dùng có thể chat và hỏi: "Tôi muốn làm món cá hồi áp chảo cho bé 2 tuổi, cần lưu ý gì?" hoặc "Công thức này bị ngọt quá thì chữa thế nào?".
+Tại sao đắt giá: Đưa công nghệ AI thời thượng vào app, giúp người dùng có một người bạn đồng hành, hỗ trợ giải đáp mọi thắc mắc ngay lúc đang đứng bếp mà không cần thoát app đi tìm Google.
+Cách triển khai: Tạo một route /api/ai/chat ở backend kết nối với thư viện Gemini API, phía frontend thiết kế một màn hình Chat trực quan, hiện đại.
+4. 🔊 Chế độ Nấu ăn Rảnh Tay (Hands-free Voice Cooking Mode)
+Ý tưởng: Khi bước vào công đoạn nấu ăn thực tế, người dùng sẽ bật chế độ này. Ứng dụng hiển thị các bước làm với phông chữ siêu to (để nhìn từ xa) và tích hợp điều khiển bằng giọng nói. Người dùng chỉ cần nói "Tiếp theo" hoặc "Quay lại" để chuyển bước mà không cần chạm tay vào màn hình điện thoại.
+Tại sao đắt giá: Cực kỳ hữu ích! Khi nấu ăn, tay người dùng thường bị ướt hoặc dính dầu mỡ, việc phải chạm vào màn hình điện thoại rất bất tiện và dễ bẩn máy. Việc điều khiển bằng giọng nói sẽ giải quyết triệt để nỗi đau (pain-point) này của họ.
+Cách triển khai: Sử dụng thư viện Speech-to-Text cơ bản của React Native để bắt các từ khóa điều khiển đơn giản như "Tiếp theo", "Quay lại".
+🏆 5. Hệ thống Cấp bậc Đầu bếp & Huy hiệu (Gamification)
+Ý tưởng: Biến việc nấu ăn thành một trò chơi thú vị! Mỗi khi người dùng nấu xong một món ăn, chia sẻ công thức lên cộng đồng, hoặc nhận được lượt thích từ người khác, họ sẽ nhận được điểm kinh nghiệm (XP) để thăng cấp đầu bếp:
+Tập sự nấu nướng ➡️ Đầu bếp gia đình ➡️ Bếp trưởng ➡️ Siêu đầu bếp.
+Nhận các huy hiệu danh giá: "Bàn tay vàng trong làng nấu phở", "Chiến thần eat-clean", v.v.
+Tại sao đắt giá: Tăng tỷ lệ giữ chân người dùng (Retention rate) và kích thích họ tương tác, chia sẻ nhiều hơn để khoe cấp bậc trên trang Cá nhân của mình.
+Cách triển khai: Thêm thuộc tính level, xp vào bảng User, hiển thị thanh tiến trình thăng cấp (Level Progress Bar) và các Badge hình ảnh tròn xịn sò trên màn hình Cá nhân.
+💡 Gợi ý của tôi dành cho bạn:
+Nếu bạn muốn tiếp tục nâng cấp ứng dụng này lên một tầm cao mới:
+
+Tính năng số 2 (Đồng bộ Kế hoạch & Đi chợ tự động) và Tính năng số 5 (Hệ thống Cấp bậc & Huy hiệu) là hai tính năng cực kỳ khả thi và làm cực nhanh bằng code hiện tại mà hiệu quả thị giác đem lại lại rất lớn.
+Nếu muốn ứng dụng mang tính "công nghệ cao", tích hợp Tính năng số 3 (AI Chatbot) sẽ làm ứng dụng của bạn cực kỳ nổi bật.
+==============
+📋 Điểm nhấn của kế hoạch chiều nay:
+🏆 Chef Level (Gamification):
+Cơ chế tích lũy XP: Hoàn thành món ăn (+50 XP), Viết đánh giá kèm ảnh (+30 XP), Vượt thử thách tuần (+150 XP).
+Hệ thống cấp bậc: Phân cấp từ Tập sự (Cấp 1-5), Trợ lý đầu bếp (Cấp 6-15), Đầu bếp chính (Cấp 16-30) cho đến Bếp trưởng huyền thoại (Cấp 31+).
+Thiết kế Database: Cấu trúc chi tiết các bảng ChefProfile, UserBadge, Challenge, UserChallenge để quản lý Huy hiệu và Thử thách của người dùng.

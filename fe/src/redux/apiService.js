@@ -7,7 +7,7 @@ const BASE_URL = API_URL;
 
 export const apiService = createApi({
   reducerPath: 'api',
-  tagTypes: ['Favorites', 'ShoppingList', 'Follows', 'Feed', 'Comments', 'RecipeReviews', 'MealPlans'],
+  tagTypes: ['Favorites', 'ShoppingList', 'Follows', 'Feed', 'Comments', 'RecipeReviews', 'MealPlans', 'SavedShoppingLists', 'Nutrition', 'Gamification'],
   baseQuery: fetchBaseQuery({
     baseUrl: BASE_URL,
     prepareHeaders: (headers, { getState }) => {

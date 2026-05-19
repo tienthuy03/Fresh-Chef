@@ -8,6 +8,9 @@ import {
   Image,
   Alert,
   Platform,
+  TextInput,
+  Modal,
+  KeyboardAvoidingView,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '@constants/Colors';
@@ -17,6 +20,7 @@ import {
   useGetRecipeDetailQuery,
   useToggleFavoriteMutation,
   useGetFavoritesQuery,
+  useAskAiAssistantMutation,
 } from '@redux/api/Recipes';
 import {
   usePostReviewMutation,
@@ -54,14 +58,60 @@ const RecipeDetailScreen = () => {
   const [shareReview] = useShareReviewMutation();
   const [postComment] = usePostCommentMutation();
   const [addMealPlan, { isLoading: isAddingMealPlan }] = useAddMealPlanMutation();
+  const [askAi, { isLoading: isAiTyping }] = useAskAiAssistantMutation();
 
   const currentUserId = meData?.Data?.id;
 
   const [modalVisible, setModalVisible] = React.useState(false);
   const [mealPlanModalVisible, setMealPlanModalVisible] = React.useState(false);
   const [videoModalVisible, setVideoModalVisible] = React.useState(false);
+  const [aiChatVisible, setAiChatVisible] = React.useState(false);
+
+  const [messages, setMessages] = React.useState([]);
+  const [chatInput, setChatInput] = React.useState('');
+  const chatScrollRef = React.useRef(null);
 
   const recipe = response?.Data;
+
+  const ingredients = React.useMemo(() => {
+    if (!recipe) return [];
+    return Array.isArray(recipe.ingredients)
+      ? recipe.ingredients
+      : typeof recipe.ingredients === 'string' && recipe.ingredients
+      ? JSON.parse(recipe.ingredients)
+      : [];
+  }, [recipe]);
+
+  const steps = React.useMemo(() => {
+    if (!recipe) return [];
+    return Array.isArray(recipe.steps)
+      ? recipe.steps
+      : typeof recipe.steps === 'string' && recipe.steps
+      ? JSON.parse(recipe.steps)
+      : [];
+  }, [recipe]);
+
+  // Initialize greeting message
+  React.useEffect(() => {
+    if (recipe && messages.length === 0) {
+      setMessages([
+        {
+          id: 'welcome',
+          text: `👋 Chào bạn! Mình là *Chef AI* - trợ lý nêm nếm & cứu hộ bếp ảo của bạn.\n\nMình thấy bạn đang xem công thức món *"${recipe.title}"*.\n\nBạn cần mình tư vấn điều gì? Hãy chọn các gợi ý nhanh phía dưới hoặc hỏi tự do nhé! 👨‍🍳`,
+          sender: 'ai'
+        }
+      ]);
+    }
+  }, [recipe]);
+
+  // Scroll to bottom when messages or typing status updates
+  React.useEffect(() => {
+    if (chatScrollRef.current) {
+      setTimeout(() => {
+        chatScrollRef.current.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages, isAiTyping]);
 
   const handlePostReview = async formData => {
     const { content, rating, selectedImages } = formData;
@@ -159,6 +209,78 @@ const RecipeDetailScreen = () => {
     }
   };
 
+  const handleSendAiMessage = async (customText) => {
+    const textToSend = customText || chatInput;
+    if (!textToSend.trim() || isAiTyping) return;
+
+    const userMsg = {
+      id: String(Date.now()),
+      text: textToSend.trim(),
+      sender: 'user'
+    };
+
+    setMessages(prev => [...prev, userMsg]);
+    if (!customText) setChatInput('');
+
+    try {
+      const promptData = {
+        message: textToSend.trim(),
+        recipeContext: recipe ? {
+          title: recipe.title,
+          ingredients: ingredients.map(i => i.name).join(', ')
+        } : null
+      };
+
+      const result = await askAi(promptData).unwrap();
+      
+      const aiMsg = {
+        id: String(Date.now() + 1),
+        text: result.Data,
+        sender: 'ai'
+      };
+      setMessages(prev => [...prev, aiMsg]);
+    } catch (err) {
+      const errorMsg = {
+        id: String(Date.now() + 1),
+        text: "💥 *Lỗi:* Không thể kết nối với Chef AI. Bạn vui lòng kiểm tra kết nối mạng hoặc thử lại sau nhé!",
+        sender: 'ai'
+      };
+      setMessages(prev => [...prev, errorMsg]);
+    }
+  };
+
+  const renderFormattedText = (text, isUser) => {
+    const parts = text.split(/(\*\*|__|\*|_)/g);
+    let isBold = false;
+    let isItalic = false;
+
+    return (
+      <Text style={[styles.aiMessageText, isUser ? styles.aiMessageTextUser : styles.aiMessageTextAi]}>
+        {parts.map((part, index) => {
+          if (part === '**' || part === '__') {
+            isBold = !isBold;
+            return null;
+          }
+          if (part === '*' || part === '_') {
+            isItalic = !isItalic;
+            return null;
+          }
+          return (
+            <Text
+              key={index}
+              style={{
+                fontWeight: isBold ? 'bold' : 'normal',
+                fontStyle: isItalic ? 'italic' : 'normal',
+              }}
+            >
+              {part}
+            </Text>
+          );
+        })}
+      </Text>
+    );
+  };
+
   if (isLoading) {
     return (
       <View
@@ -185,18 +307,6 @@ const RecipeDetailScreen = () => {
     );
   }
 
-  const ingredients = Array.isArray(recipe.ingredients)
-    ? recipe.ingredients
-    : typeof recipe.ingredients === 'string' && recipe.ingredients
-    ? JSON.parse(recipe.ingredients)
-    : [];
-
-  const steps = Array.isArray(recipe.steps)
-    ? recipe.steps
-    : typeof recipe.steps === 'string' && recipe.steps
-    ? JSON.parse(recipe.steps)
-    : [];
-
   return (
     <View style={styles.container}>
       <ReviewModal
@@ -219,6 +329,116 @@ const RecipeDetailScreen = () => {
         recipe={recipe}
       />
 
+      {/* Chef AI Culinary Assistant Modal */}
+      <Modal
+        visible={aiChatVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAiChatVisible(false)}
+      >
+        <View style={styles.aiModalContainer}>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.aiModalContent}
+          >
+            {/* Modal Header */}
+            <View style={styles.aiModalHeader}>
+              <View style={styles.aiModalTitleRow}>
+                <Ionicons name="sparkles" size={20} color={Colors.primary} />
+                <Text style={styles.aiModalTitle}>Chef AI Assistant</Text>
+                <Text style={styles.aiModalSubtitle}>Trợ lý bếp</Text>
+              </View>
+              <TouchableOpacity onPress={() => setAiChatVisible(false)}>
+                <Ionicons name="close" size={24} color={Colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Chat Messages */}
+            <ScrollView 
+              ref={chatScrollRef}
+              style={styles.aiMessageList}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 20 }}
+            >
+              {messages.map(msg => (
+                <View 
+                  key={msg.id} 
+                  style={[
+                    styles.aiBubble, 
+                    msg.sender === 'user' ? styles.aiBubbleUser : styles.aiBubbleAi
+                  ]}
+                >
+                  {renderFormattedText(msg.text, msg.sender === 'user')}
+                </View>
+              ))}
+
+              {isAiTyping && (
+                <View style={styles.aiTypingBubble}>
+                  <ActivityIndicator size="small" color={Colors.textLight} />
+                  <Text style={styles.aiTypingText}>Chef AI đang suy nghĩ...</Text>
+                </View>
+              )}
+            </ScrollView>
+
+            {/* Quick Emergency Pills */}
+            <View style={{ borderTopWidth: 1, borderTopColor: '#F1F3F5' }}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 15, paddingVertical: 10 }}
+              >
+                <TouchableOpacity 
+                  style={styles.aiQuickPill} 
+                  onPress={() => handleSendAiMessage("Món này bị mặn chữa thế nào?")}
+                >
+                  <Text style={{ fontSize: 13 }}>🧂</Text>
+                  <Text style={styles.aiQuickPillText}>Cứu món mặn</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.aiQuickPill} 
+                  onPress={() => handleSendAiMessage("Món bị quá cay thì chữa sao?")}
+                >
+                  <Text style={{ fontSize: 13 }}>🌶️</Text>
+                  <Text style={styles.aiQuickPillText}>Giảm vị cay</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.aiQuickPill} 
+                  onPress={() => handleSendAiMessage("Đồ ăn bị cháy khét xử lý thế nào?")}
+                >
+                  <Text style={{ fontSize: 13 }}>🔥</Text>
+                  <Text style={styles.aiQuickPillText}>Xử lý cháy khét</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.aiQuickPill} 
+                  onPress={() => handleSendAiMessage("Có nguyên liệu nào thay thế bột năng không?")}
+                >
+                  <Text style={{ fontSize: 13 }}>🌽</Text>
+                  <Text style={styles.aiQuickPillText}>Thay bột năng</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+
+            {/* Message Input */}
+            <View style={styles.aiInputContainer}>
+              <TextInput
+                style={styles.aiInput}
+                placeholder="Hỏi Chef AI nêm nếm, thay thế..."
+                value={chatInput}
+                onChangeText={setChatInput}
+                multiline
+              />
+              <TouchableOpacity 
+                style={[styles.aiSendButton, !chatInput.trim() && styles.aiSendButtonDisabled]} 
+                onPress={() => handleSendAiMessage()}
+                disabled={!chatInput.trim() || isAiTyping}
+              >
+                <Ionicons name="send" size={18} color={Colors.white} />
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -229,13 +449,21 @@ const RecipeDetailScreen = () => {
         <Text style={styles.headerTitle}>
           {t('recipe_detail', 'Chi tiết món')}
         </Text>
-        <TouchableOpacity onPress={handleToggleFavorite} disabled={isToggling}>
-          <Ionicons
-            name={isFavorited ? 'heart' : 'heart-outline'}
-            size={24}
-            color={isFavorited ? Colors.error : Colors.text}
-          />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity 
+            onPress={() => setAiChatVisible(true)} 
+            style={{ marginRight: 15 }}
+          >
+            <Ionicons name="sparkles" size={24} color={Colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleToggleFavorite} disabled={isToggling}>
+            <Ionicons
+              name={isFavorited ? 'heart' : 'heart-outline'}
+              size={24}
+              color={isFavorited ? Colors.error : Colors.text}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView

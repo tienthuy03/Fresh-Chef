@@ -113,6 +113,35 @@ export const recipesApi = apiService.injectEndpoints({
         body: { keyword },
       }),
     }),
+    askAiAssistant: build.mutation({
+      query: (data) => ({
+        url: '/ai-assistant/chat',
+        method: 'POST',
+        body: data,
+      }),
+    }),
+    getNutritionProfile: build.query({
+      query: () => ({
+        url: '/nutrition/profile',
+        method: 'GET',
+      }),
+      providesTags: ['Nutrition'],
+    }),
+    setupNutrition: build.mutation({
+      query: (body) => ({
+        url: '/nutrition/setup',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Nutrition'],
+    }),
+    getNutritionPlan: build.query({
+      query: () => ({
+        url: '/nutrition/plan',
+        method: 'GET',
+      }),
+      providesTags: ['Nutrition'],
+    }),
   }),
 });
 
@@ -129,5 +158,9 @@ export const {
   useToggleShoppingItemMutation,
   useClearShoppingListMutation,
   useSuggestRecipesMutation,
-  useSyncRecipesMutation
+  useSyncRecipesMutation,
+  useAskAiAssistantMutation,
+  useGetNutritionProfileQuery,
+  useSetupNutritionMutation,
+  useGetNutritionPlanQuery,
 } = recipesApi;

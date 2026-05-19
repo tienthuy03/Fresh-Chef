@@ -47,6 +47,39 @@ router.post('/', auth, async (req, res) => {
 
 /**
  * @swagger
+ * /api/shopping-list/bulk:
+ *   post:
+ *     summary: Add multiple items to shopping list
+ *     tags: [ShoppingList]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post('/bulk', auth, async (req, res) => {
+  try {
+    const { items } = req.body;
+    if (!items || !Array.isArray(items)) {
+      return res.status(400).json({ Success: false, Message: 'Items array is required' });
+    }
+
+    const createdItems = [];
+    for (const item of items) {
+      if (!item.name) continue;
+      const created = await ShoppingItem.create({
+        name: item.name,
+        quantity: item.quantity || '',
+        UserId: req.user.id
+      });
+      createdItems.push(created);
+    }
+
+    res.status(201).json({ Success: true, Data: createdItems });
+  } catch (err) {
+    res.status(500).json({ Success: false, Message: 'Server error', Errors: [err.message] });
+  }
+});
+
+/**
+ * @swagger
  * /api/shopping-list/{id}:
  *   patch:
  *     summary: Toggle item checked status

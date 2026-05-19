@@ -12,7 +12,9 @@ import PreferenceQuizScreen from '@screens/PreferenceQuiz';
 import RecipeDetailScreen from '@screens/RecipeDetail';
 import AllRecipesScreen from '@screens/AllRecipes';
 import ShoppingListScreen from '@screens/ShoppingList';
+import SmartShoppingListScreen from '@screens/ShoppingList/SmartShoppingList';
 import AllChefsScreen from '@screens/AllChefs';
+import NutritionPlannerScreen from '@screens/NutritionPlanner';
 
 import MainTabNavigator from './MainTabNavigator';
 
@@ -69,8 +71,10 @@ const AppNavigator = () => {
             <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
             <Stack.Screen name="AllRecipes" component={AllRecipesScreen} />
             <Stack.Screen name="ShoppingList" component={ShoppingListScreen} />
+            <Stack.Screen name="SmartShoppingList" component={SmartShoppingListScreen} />
             <Stack.Screen name="PreferenceQuiz" component={PreferenceQuizScreen} />
             <Stack.Screen name="AllChefs" component={AllChefsScreen} />
+            <Stack.Screen name="NutritionPlanner" component={NutritionPlannerScreen} />
           </>
         )}
       </Stack.Navigator>
