@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -16,7 +16,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '@constants/Colors';
 import { useTranslation } from 'react-i18next';
 import { useGetMeQuery, useUpdateProfileMutation, useChangePasswordMutation } from '@redux/api/Auth';
-import { useGetGamificationProfileQuery } from '@redux/api/Gamification';
+import { useGetGamificationProfileQuery, useAddTestXpMutation } from '@redux/api/Gamification';
 import { useDispatch } from 'react-redux';
 import { logOut } from '@redux/slices/authSlice';
 import SectionHeader from '@components/GlobalUI/SectionHeader';
@@ -24,6 +24,8 @@ import PrimaryButton from '@components/GlobalUI/PrimaryButton';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { BASE_URL } from '@constants/Config';
 import { apiService } from '@redux/apiService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Animatable from 'react-native-animatable';
 
 
 
@@ -32,12 +34,49 @@ const ProfileScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const { data: profileData, isLoading, refetch } = useGetMeQuery();
   const { data: gamificationData, error: gamificationError, isLoading: gamificationLoading } = useGetGamificationProfileQuery();
+  const [addTestXp, { isLoading: isAddingXp }] = useAddTestXpMutation();
   const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation();
   const [changePassword, { isLoading: isChangingPassword }] = useChangePasswordMutation();
   
   const user = profileData?.Data || {};
   const stats = user.Stats || { Followers: 0, Following: 0, Recipes: 0 };
   const gamificationProfile = gamificationData?.Data || null;
+
+  // Level up modal state
+  const [isLevelUpModalVisible, setIsLevelUpModalVisible] = useState(false);
+  const [levelUpInfo, setLevelUpInfo] = useState({ level: 1, title: '', badge: null });
+
+  // Track the last seen level to trigger level up popup
+  useEffect(() => {
+    if (gamificationProfile?.profile?.level && user?.id) {
+      const checkLevelUp = async () => {
+        const currentLevel = gamificationProfile.profile.level;
+        const storedLevelKey = `LAST_SEEN_LEVEL_${user.id}`;
+        const storedLevelStr = await AsyncStorage.getItem(storedLevelKey);
+        
+        if (storedLevelStr !== null) {
+          const storedLevel = parseInt(storedLevelStr, 10);
+          if (currentLevel > storedLevel) {
+            // Find newly earned badge corresponding to this level, or the latest earned badge
+            const badges = gamificationProfile.earnedBadges || [];
+            const latestBadge = badges.find(b => b.conditionType === 'level' && b.conditionValue === currentLevel) || 
+                                (badges.length > 0 ? badges[badges.length - 1] : null);
+
+            setLevelUpInfo({
+              level: currentLevel,
+              title: gamificationProfile.profile.title,
+              badge: latestBadge
+            });
+            setIsLevelUpModalVisible(true);
+          }
+        }
+        
+        // Save the current level as the last seen level
+        await AsyncStorage.setItem(storedLevelKey, currentLevel.toString());
+      };
+      checkLevelUp();
+    }
+  }, [gamificationProfile?.profile?.level, user?.id]);
 
   // Modals visibility
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -210,7 +249,50 @@ const ProfileScreen = ({ navigation }) => {
                 <View style={styles.xpBarBackground}>
                   <View style={[styles.xpBarFill, { width: `${gamificationProfile.progress.percentComplete}%` }]} />
                 </View>
-                <Text style={styles.xpText}>{gamificationProfile.progress.currentXp} / {gamificationProfile.progress.nextLevelXp} XP</Text>
+                
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                  <TouchableOpacity 
+                    style={styles.testXpButton} 
+                    onPress={async () => {
+                      try {
+                        await addTestXp(100).unwrap();
+                      } catch (err) {
+                        console.error('Failed to add test XP:', err);
+                      }
+                    }}
+                    disabled={isAddingXp}
+                  >
+                    {isAddingXp ? (
+                      <ActivityIndicator size="small" color={Colors.primary} />
+                    ) : (
+                      <Text style={styles.testXpText}>+100 XP (Test)</Text>
+                    )}
+                  </TouchableOpacity>
+                  <Text style={styles.xpText}>{gamificationProfile.progress.currentXp} / {gamificationProfile.progress.nextLevelXp} XP</Text>
+                </View>
+
+                {/* Earned Badges Mini List */}
+                {gamificationProfile.earnedBadges && gamificationProfile.earnedBadges.length > 0 && (
+                  <View style={styles.miniBadgesContainer}>
+                    <Text style={styles.miniBadgesTitle}>{t('recent_badges', 'Huy hiệu của tôi:')}</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.miniBadgesList}>
+                      {gamificationProfile.earnedBadges.map((badge, idx) => (
+                        <TouchableOpacity 
+                          key={idx} 
+                          style={styles.miniBadgeItem}
+                          onPress={() => navigation.navigate('Badges')}
+                        >
+                          <View style={styles.miniBadgeIconCircle}>
+                            <Text style={styles.miniBadgeIcon}>{badge.iconUrl}</Text>
+                          </View>
+                          <Text style={styles.miniBadgeName} numberOfLines={1}>
+                            {badge.name.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '').trim()}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
               </View>
             )}
 
@@ -276,6 +358,17 @@ const ProfileScreen = ({ navigation }) => {
             subtitle="Tính Calo, Macro & thực đơn lành mạnh" 
             color="#20c997"
             onPress={() => navigation.navigate('NutritionPlanner')}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <SectionHeader title="Thành tích & Huy hiệu" />
+          <MenuItem 
+            icon="trophy-outline" 
+            title="Bộ sưu tập huy hiệu" 
+            subtitle="Xem toàn bộ huy hiệu đã mở khóa" 
+            color="#FF9F43"
+            onPress={() => navigation.navigate('Badges')}
           />
         </View>
 
@@ -397,6 +490,45 @@ const ProfileScreen = ({ navigation }) => {
               style={{ marginTop: 20 }}
             />
           </View>
+        </View>
+      </Modal>
+
+      {/* Level Up Modal */}
+      <Modal visible={isLevelUpModalVisible} animationType="fade" transparent>
+        <View style={styles.levelUpOverlay}>
+          <Animatable.View animation="zoomInUp" duration={800} style={styles.levelUpContent}>
+            {/* Confetti decoration */}
+            <Animatable.Text animation="bounceInDown" delay={300} style={styles.congratsEmoji}>🎉 🌟 🥳 🌟 🎉</Animatable.Text>
+            
+            <Text style={styles.levelUpSub}>{t('level_up_congrats', 'CHÚC MỪNG BẠN!')}</Text>
+            <Text style={styles.levelUpTitle}>{t('level_up_title', 'THĂNG CẤP MỚI')}</Text>
+            
+            <Animatable.View animation="pulse" easing="ease-out" iterationCount="infinite" style={styles.levelBadgeContainer}>
+              <Text style={styles.levelBadgeText}>Lv. {levelUpInfo.level}</Text>
+            </Animatable.View>
+
+            <Text style={styles.levelUpTitleName}>{levelUpInfo.title}</Text>
+
+            {levelUpInfo.badge && (
+              <Animatable.View animation="tada" delay={800} style={styles.unlockedBadgeCard}>
+                <View style={styles.badgeIconBg}>
+                  <Text style={styles.badgeEmojiIcon}>{levelUpInfo.badge.iconUrl}</Text>
+                </View>
+                <Text style={styles.badgeAlertText}>{t('badge_unlocked_alert', 'Bạn đã nhận được huy hiệu mới:')}</Text>
+                <Text style={styles.badgeAlertName}>{levelUpInfo.badge.name}</Text>
+                <Text style={styles.badgeAlertDesc}>{levelUpInfo.badge.description}</Text>
+              </Animatable.View>
+            )}
+
+            <Animatable.View animation="fadeInUp" delay={1200}>
+              <TouchableOpacity 
+                style={styles.levelUpCloseButton} 
+                onPress={() => setIsLevelUpModalVisible(false)}
+              >
+                <Text style={styles.levelUpCloseText}>{t('level_up_close', 'Tuyệt vời!')}</Text>
+              </TouchableOpacity>
+            </Animatable.View>
+          </Animatable.View>
         </View>
       </Modal>
     </View>

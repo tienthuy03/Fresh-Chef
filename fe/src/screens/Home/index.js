@@ -7,6 +7,8 @@ import {
   Image,
   FlatList,
   TouchableOpacity,
+  Modal,
+  KeyboardAvoidingView,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '@constants/Colors';
@@ -16,12 +18,12 @@ import {
   useGetTrendingRecipesQuery,
   useToggleFavoriteMutation,
   useGetFavoritesQuery,
+  useAskAiAssistantMutation,
 } from '@redux/api/Recipes';
 import { ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import RecipeCard from '@components/Recipe/RecipeCard';
 import SectionHeader from '@components/GlobalUI/SectionHeader';
-import SearchBar from '@components/GlobalUI/SearchBar';
 
 const FEATURED_RECIPES = [
   {
@@ -49,7 +51,12 @@ const HomeScreen = () => {
   const { data: trendingData, isLoading: isTrendingLoading } =
     useGetTrendingRecipesQuery();
   const { data: favoritesData } = useGetFavoritesQuery();
+  const [askAi, { isLoading: isAiTyping }] = useAskAiAssistantMutation();
   const [toggleFavorite] = useToggleFavoriteMutation();
+  const [aiChatVisible, setAiChatVisible] = React.useState(false);
+  const [messages, setMessages] = React.useState([]);
+  const [chatInput, setChatInput] = React.useState('');
+  const chatScrollRef = React.useRef(null);
 
   const favoriteIds = React.useMemo(() => {
     return (favoritesData?.Data || []).map(f => f.id);
@@ -71,7 +78,7 @@ const HomeScreen = () => {
 
     // Shuffle or just pick different ranges to avoid duplication
     const shuffled = [...recipes].sort(() => 0.5 - Math.random());
-    
+
     // If total recipe count is small (<= 5), allow them to overlap in both sections so the home screen isn't empty.
     const filteredForGrid = recipes.length > 5
       ? recipes.filter(r => !shuffled.slice(0, 3).some(c => c.id === r.id))
@@ -89,6 +96,47 @@ const HomeScreen = () => {
     setActiveRecIndex(Math.round(index));
   };
 
+  const handleSendAiMessage = async (customText) => {
+    const textToSend = customText || chatInput;
+    if (!textToSend.trim() || isAiTyping) return;
+
+    const userMsg = {
+      id: String(Date.now()),
+      text: textToSend.trim(),
+      sender: 'user'
+    };
+
+    setMessages(prev => [...prev, userMsg]);
+    if (!customText) setChatInput('');
+
+    try {
+      const promptData = {
+        message: textToSend.trim(),
+        // recipeContext: recipe ? {
+        //   title: recipe.title,
+        //   ingredients: ingredients.map(i => i.name).join(', ')
+        // } : null
+      };
+
+      const result = await askAi(promptData).unwrap();
+
+      const aiMsg = {
+        id: String(Date.now() + 1),
+        text: result.Data,
+        sender: 'ai'
+      };
+      setMessages(prev => [...prev, aiMsg]);
+    } catch (err) {
+      const errorMsg = {
+        id: String(Date.now() + 1),
+        text: "💥 *Lỗi:* Không thể kết nối với Chef AI. Bạn vui lòng kiểm tra kết nối mạng hoặc thử lại sau nhé!",
+        sender: 'ai'
+      };
+      setMessages(prev => [...prev, errorMsg]);
+    }
+  };
+
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -97,14 +145,23 @@ const HomeScreen = () => {
           <Text style={styles.greeting}>{t('hi_there')}, 👋</Text>
           <Text style={styles.headerTitle}>{t('what_to_cook_today')}</Text>
         </View>
-        <TouchableOpacity style={styles.notificationButton}>
-          <Ionicons
-            name="notifications-outline"
-            size={24}
-            color={Colors.text}
-          />
-          <View style={styles.notificationBadge} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity
+            onPress={() => setAiChatVisible(true)}
+            style={{ marginRight: 15 }}
+          >
+            <Ionicons name="sparkles" size={24} color={Colors.primary} />
+          </TouchableOpacity>
+          {/* <TouchableOpacity style={styles.notificationButton}>
+            <Ionicons
+              name="notifications-outline"
+              size={24}
+              color={Colors.text}
+            />
+            <View style={styles.notificationBadge} />
+          </TouchableOpacity> */}
+        </View>
+
       </View>
 
       <ScrollView
@@ -279,7 +336,117 @@ const HomeScreen = () => {
 
         {/* Bottom padding for floating tab bar */}
         <View style={{ height: 100 }} />
+        {/* Chef AI Culinary Assistant Modal */}
+        <Modal
+          visible={aiChatVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setAiChatVisible(false)}
+        >
+          <View style={styles.aiModalContainer}>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={styles.aiModalContent}
+            >
+              {/* Modal Header */}
+              <View style={styles.aiModalHeader}>
+                <View style={styles.aiModalTitleRow}>
+                  <Ionicons name="sparkles" size={20} color={Colors.primary} />
+                  <Text style={styles.aiModalTitle}>Chef AI Assistant</Text>
+                  <Text style={styles.aiModalSubtitle}>Trợ lý bếp</Text>
+                </View>
+                <TouchableOpacity onPress={() => setAiChatVisible(false)}>
+                  <Ionicons name="close" size={24} color={Colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Chat Messages */}
+              <ScrollView
+                ref={chatScrollRef}
+                style={styles.aiMessageList}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 20 }}
+              >
+                {messages.map(msg => (
+                  <View
+                    key={msg.id}
+                    style={[
+                      styles.aiBubble,
+                      msg.sender === 'user' ? styles.aiBubbleUser : styles.aiBubbleAi
+                    ]}
+                  >
+                    {renderFormattedText(msg.text, msg.sender === 'user')}
+                  </View>
+                ))}
+
+                {isAiTyping && (
+                  <View style={styles.aiTypingBubble}>
+                    <ActivityIndicator size="small" color={Colors.textLight} />
+                    <Text style={styles.aiTypingText}>Chef AI đang suy nghĩ...</Text>
+                  </View>
+                )}
+              </ScrollView>
+
+              {/* Quick Emergency Pills */}
+              <View style={{ borderTopWidth: 1, borderTopColor: '#F1F3F5' }}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingHorizontal: 15, paddingVertical: 10 }}
+                >
+                  <TouchableOpacity
+                    style={styles.aiQuickPill}
+                    onPress={() => handleSendAiMessage("Món này bị mặn chữa thế nào?")}
+                  >
+                    <Text style={{ fontSize: 13 }}>🧂</Text>
+                    <Text style={styles.aiQuickPillText}>Cứu món mặn</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.aiQuickPill}
+                    onPress={() => handleSendAiMessage("Món bị quá cay thì chữa sao?")}
+                  >
+                    <Text style={{ fontSize: 13 }}>🌶️</Text>
+                    <Text style={styles.aiQuickPillText}>Giảm vị cay</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.aiQuickPill}
+                    onPress={() => handleSendAiMessage("Đồ ăn bị cháy khét xử lý thế nào?")}
+                  >
+                    <Text style={{ fontSize: 13 }}>🔥</Text>
+                    <Text style={styles.aiQuickPillText}>Xử lý cháy khét</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.aiQuickPill}
+                    onPress={() => handleSendAiMessage("Có nguyên liệu nào thay thế bột năng không?")}
+                  >
+                    <Text style={{ fontSize: 13 }}>🌽</Text>
+                    <Text style={styles.aiQuickPillText}>Thay bột năng</Text>
+                  </TouchableOpacity>
+                </ScrollView>
+              </View>
+
+              {/* Message Input */}
+              <View style={styles.aiInputContainer}>
+                <TextInput
+                  style={styles.aiInput}
+                  placeholder="Hỏi Chef AI nêm nếm, thay thế..."
+                  value={chatInput}
+                  onChangeText={setChatInput}
+                  multiline
+                />
+                <TouchableOpacity
+                  style={[styles.aiSendButton, !chatInput.trim() && styles.aiSendButtonDisabled]}
+                  onPress={() => handleSendAiMessage()}
+                  disabled={!chatInput.trim() || isAiTyping}
+                >
+                  <Ionicons name="send" size={18} color={Colors.white} />
+                </TouchableOpacity>
+              </View>
+            </KeyboardAvoidingView>
+          </View>
+        </Modal>
       </ScrollView>
+
     </View>
   );
 };
