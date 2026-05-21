@@ -58,6 +58,29 @@ const HomeScreen = () => {
   const [chatInput, setChatInput] = React.useState('');
   const chatScrollRef = React.useRef(null);
 
+  // Initialize greeting message
+  React.useEffect(() => {
+    if (messages.length === 0) {
+      setMessages([
+        {
+          id: 'welcome',
+          text: `👋 Chào bạn! Mình là *Chef AI* - trợ lý nấu ăn ảo của bạn.\n\nHôm nay bạn muốn nấu món gì? Bạn cần mình gợi ý thực đơn, hay xử lý các sự cố trong bếp? Hãy chọn các gợi ý nhanh phía dưới hoặc hỏi tự do nhé! 👨‍🍳`,
+          sender: 'ai'
+        }
+      ]);
+    }
+  }, []);
+
+  // Scroll to bottom when messages or typing status updates
+  React.useEffect(() => {
+    if (chatScrollRef.current) {
+      setTimeout(() => {
+        chatScrollRef.current.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages, isAiTyping]);
+
+
   const favoriteIds = React.useMemo(() => {
     return (favoritesData?.Data || []).map(f => f.id);
   }, [favoritesData]);
@@ -136,6 +159,37 @@ const HomeScreen = () => {
     }
   };
 
+  const renderFormattedText = (text, isUser) => {
+    const parts = text.split(/(\*\*|__|\*|_)/g);
+    let isBold = false;
+    let isItalic = false;
+
+    return (
+      <Text style={[styles.aiMessageText, isUser ? styles.aiMessageTextUser : styles.aiMessageTextAi]}>
+        {parts.map((part, index) => {
+          if (part === '**' || part === '__') {
+            isBold = !isBold;
+            return null;
+          }
+          if (part === '*' || part === '_') {
+            isItalic = !isItalic;
+            return null;
+          }
+          return (
+            <Text
+              key={index}
+              style={{
+                fontWeight: isBold ? 'bold' : 'normal',
+                fontStyle: isItalic ? 'italic' : 'normal',
+              }}
+            >
+              {part}
+            </Text>
+          );
+        })}
+      </Text>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -203,8 +257,8 @@ const HomeScreen = () => {
                         {t('weekly_pick', 'Gợi ý cho bạn')}
                       </Text>
                       <Ionicons
-                        name="sparkles"
-                        size={20}
+                        name="bonfire-sharp"
+                        size={24}
                         color={Colors.primary}
                       />
                     </View>

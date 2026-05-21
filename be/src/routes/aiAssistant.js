@@ -184,3 +184,4 @@ router.post('/chat', auth, async (req, res) => {
 });
 
 module.exports = router; // Trigger nodemon restart to load GEMINI_API_KEY from .env
+
