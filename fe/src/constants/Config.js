@@ -1,11 +1,14 @@
 import { Platform } from 'react-native';
 
-// For Android Emulator, use 10.0.2.2. For iOS/Web, use localhost.
-// IMPORTANT: If testing on a real device, replace this with your computer's local IP address (e.g., 'http://192.168.1.5:3000')
+// Sau khi deploy Render, thay URL bên dưới bằng URL thật (vd: https://recipe-api-xxxx.onrender.com)
+const PRODUCTION_API_URL = 'https://YOUR-APP-NAME.onrender.com';
+
 const HOST = Platform.select({
   ios: 'localhost',
-  android: '10.0.2.2', // Special IP for Android Emulator to access localhost
+  android: '10.0.2.2',
 });
 
-export const BASE_URL = `http://${HOST}:3000`;
+const DEV_BASE_URL = `http://${HOST}:3000`;
+
+export const BASE_URL = __DEV__ ? DEV_BASE_URL : PRODUCTION_API_URL;
 export const API_URL = `${BASE_URL}/api`;

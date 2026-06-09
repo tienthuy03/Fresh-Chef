@@ -1,11 +1,25 @@
 const { Sequelize } = require('sequelize');
 const path = require('path');
 
-const sequelize = new Sequelize({
-  dialect: 'sqlite',
-  storage: path.join(__dirname, '../../database.sqlite'),
-  logging: false,
-});
+const databaseUrl = process.env.DATABASE_URL;
+
+const usePostgresSsl =
+  process.env.DB_SSL === 'true' ||
+  /neon\.tech|render\.com|supabase\.co|sslmode=require/i.test(databaseUrl || '');
+
+const sequelize = databaseUrl
+  ? new Sequelize(databaseUrl, {
+      dialect: 'postgres',
+      logging: false,
+      dialectOptions: usePostgresSsl
+        ? { ssl: { require: true, rejectUnauthorized: false } }
+        : {},
+    })
+  : new Sequelize({
+      dialect: 'sqlite',
+      storage: path.join(__dirname, '../../database.sqlite'),
+      logging: false,
+    });
 
 module.exports = { sequelize };
 
@@ -57,17 +71,17 @@ User.hasMany(SavedShoppingList);
 SavedShoppingList.belongsTo(User);
 
 // User <-> User (Follows) - Many-to-Many
-User.belongsToMany(User, { 
-  through: Follow, 
-  as: 'Followers', 
-  foreignKey: 'followingId', 
-  otherKey: 'followerId' 
+User.belongsToMany(User, {
+  through: Follow,
+  as: 'Followers',
+  foreignKey: 'followingId',
+  otherKey: 'followerId',
 });
-User.belongsToMany(User, { 
-  through: Follow, 
-  as: 'Following', 
-  foreignKey: 'followerId', 
-  otherKey: 'followingId' 
+User.belongsToMany(User, {
+  through: Follow,
+  as: 'Following',
+  foreignKey: 'followerId',
+  otherKey: 'followingId',
 });
 
 // User <-> MealPlan
@@ -119,5 +133,5 @@ module.exports = {
   Badge,
   UserBadge,
   Challenge,
-  UserChallenge
+  UserChallenge,
 };

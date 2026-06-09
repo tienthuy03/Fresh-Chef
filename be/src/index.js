@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const fs = require('fs');
+const path = require('path');
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 const { sequelize } = require('./models');
@@ -17,8 +19,15 @@ const gamificationRoutes = require('./routes/gamification');
 
 dotenv.config();
 
+const uploadsDir = path.join(__dirname, '../public/uploads');
+fs.mkdirSync(uploadsDir, { recursive: true });
+
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', database: process.env.DATABASE_URL ? 'postgres' : 'sqlite' });
+});
 
 app.use(cors());
 app.use(express.json());

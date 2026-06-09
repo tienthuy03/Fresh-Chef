@@ -1,0 +1,23 @@
+# Deploy: Render Dashboard → New → Blueprint → connect repo
+# Hoặc: New → Web Service → root directory = be
+services:
+  - type: web
+    name: recipe-api
+    runtime: node
+    rootDir: be
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: DB_SSL
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: REFRESH_TOKEN_SECRET
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
