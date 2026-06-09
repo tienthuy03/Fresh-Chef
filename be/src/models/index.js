@@ -2,24 +2,37 @@ const { Sequelize } = require('sequelize');
 const path = require('path');
 
 const databaseUrl = process.env.DATABASE_URL;
+const isProduction = process.env.NODE_ENV === 'production';
+
+if (isProduction && !databaseUrl) {
+  throw new Error(
+    'DATABASE_URL is required in production. Add your Neon PostgreSQL connection string in Render Environment.',
+  );
+}
 
 const usePostgresSsl =
   process.env.DB_SSL === 'true' ||
   /neon\.tech|render\.com|supabase\.co|sslmode=require/i.test(databaseUrl || '');
 
-const sequelize = databaseUrl
-  ? new Sequelize(databaseUrl, {
-      dialect: 'postgres',
-      logging: false,
-      dialectOptions: usePostgresSsl
-        ? { ssl: { require: true, rejectUnauthorized: false } }
-        : {},
-    })
-  : new Sequelize({
-      dialect: 'sqlite',
-      storage: path.join(__dirname, '../../database.sqlite'),
-      logging: false,
-    });
+let sequelize;
+
+if (databaseUrl) {
+  sequelize = new Sequelize(databaseUrl, {
+    dialect: 'postgres',
+    logging: false,
+    dialectOptions: usePostgresSsl
+      ? { ssl: { require: true, rejectUnauthorized: false } }
+      : {},
+  });
+} else {
+  // Local dev only — sqlite3 is a devDependency
+  require('sqlite3');
+  sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: path.join(__dirname, '../../database.sqlite'),
+    logging: false,
+  });
+}
 
 module.exports = { sequelize };
 

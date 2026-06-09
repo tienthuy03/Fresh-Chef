@@ -4,8 +4,9 @@ services:
   - type: web
     name: recipe-api
     runtime: node
+    plan: free
     rootDir: be
-    buildCommand: npm install
+    buildCommand: npm install --omit=dev
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
