@@ -67,12 +67,13 @@ const MealPlanSection = () => {
   const [selectedMealType, setSelectedMealType] = useState('Breakfast');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const allRecipes = recipesData?.Data || [];
+
   const filteredRecipes = useMemo(() => {
-    return allRecipes.filter(r => 
+    const allRecipes = recipesData?.Data || [];
+    return allRecipes.filter(r =>
       r.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [allRecipes, searchQuery]);
+  }, [recipesData?.Data, searchQuery]);
 
   const mealPlans = mealPlansData?.Data || [];
   const selectedMeals = mealPlans.filter(m => m.date === selectedDate);
@@ -141,10 +142,10 @@ const MealPlanSection = () => {
         onActionPress={() => setIsModalVisible(true)}
         actionText={'+ Thêm món'}
       />
-      
+
       <View style={styles.actionBar}>
         <Text style={styles.weekLabel}>Thực đơn tuần này</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.smartCartButton}
           onPress={() => navigation.navigate('SmartShoppingList', { startDate, endDate })}
         >
@@ -191,8 +192,8 @@ const MealPlanSection = () => {
           <ActivityIndicator color={Colors.primary} />
         ) : selectedMeals.length > 0 ? (
           selectedMeals.map(meal => (
-            <TouchableOpacity 
-              key={meal.id} 
+            <TouchableOpacity
+              key={meal.id}
               style={styles.mealItem}
               onPress={() => {
                 if (meal.Recipe?.id) {

@@ -4,10 +4,10 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '@constants/Colors';
 import styles from './styles';
 import { useTranslation } from 'react-i18next';
-import { 
-  useGetRecipesQuery, 
-  useToggleFavoriteMutation, 
-  useGetFavoritesQuery 
+import {
+  useGetRecipesQuery,
+  useToggleFavoriteMutation,
+  useGetFavoritesQuery
 } from '@redux/api/Recipes';
 import { useNavigation } from '@react-navigation/native';
 import RecipeListItem from '@components/Recipe/RecipeListItem';
@@ -32,18 +32,19 @@ const AllRecipesScreen = () => {
     }
   };
 
-  const recipes = data?.Data || (Array.isArray(data) ? data : []);
 
   const filteredRecipes = useMemo(() => {
+    const recipes = data?.Data || (Array.isArray(data) ? data : []);
+
     if (!searchQuery) return recipes;
-    return recipes.filter(item => 
+    return recipes.filter(item =>
       item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.category?.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [recipes, searchQuery]);
+  }, [searchQuery, data]);
 
   const renderRecipe = ({ item }) => (
-    <RecipeListItem 
+    <RecipeListItem
       item={item}
       isFavorited={favoriteIds.includes(item.id)}
       onFavoritePress={handleToggleFavorite}

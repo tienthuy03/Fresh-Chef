@@ -1,22 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Modal,
-  TextInput,
-  Image,
-  ActivityIndicator,
-  StyleSheet,
-  Platform,
-} from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Colors } from '@constants/Colors';
-import { useTranslation } from 'react-i18next';
-import { launchImageLibrary } from 'react-native-image-picker';
 import PrimaryButton from '@components/GlobalUI/PrimaryButton';
+import { Colors } from '@constants/Colors';
 import { BASE_URL } from '@constants/Config';
+import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { launchImageLibrary } from 'react-native-image-picker';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 
 

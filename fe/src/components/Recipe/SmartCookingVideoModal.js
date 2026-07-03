@@ -1,32 +1,31 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { Colors } from '@constants/Colors';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  Animated,
+  Dimensions,
+  Easing,
+  Linking,
   Modal,
-  View,
-  Text,
-  TouchableOpacity,
+  Platform,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
-  Image,
-  Dimensions,
-  Animated,
-  Easing,
-  SafeAreaView,
-  Platform,
-  Linking,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Colors } from '@constants/Colors';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const SmartCookingVideoModal = ({ visible, onClose, recipe }) => {
-  if (!recipe) return null;
+
 
   const steps = Array.isArray(recipe.steps)
     ? recipe.steps
     : typeof recipe.steps === 'string' && recipe.steps
-    ? JSON.parse(recipe.steps)
-    : [];
+      ? JSON.parse(recipe.steps)
+      : [];
 
   const totalSteps = steps.length;
   const STEP_DURATION = 15; // 15 seconds per step
@@ -63,7 +62,7 @@ const SmartCookingVideoModal = ({ visible, onClose, recipe }) => {
     } else {
       scaleAnim.stopAnimation();
     }
-  }, [isPlaying]);
+  }, [isPlaying, scaleAnim]);
 
   // Video timer logic
   useEffect(() => {
@@ -83,7 +82,7 @@ const SmartCookingVideoModal = ({ visible, onClose, recipe }) => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isPlaying, TOTAL_DURATION]);
+  }, [isPlaying, TOTAL_DURATION, ]);
 
   // Sync progress bar animation
   useEffect(() => {
@@ -93,10 +92,10 @@ const SmartCookingVideoModal = ({ visible, onClose, recipe }) => {
       easing: Easing.linear,
       useNativeDriver: false,
     }).start();
-  }, [currentTime, TOTAL_DURATION]);
+  }, [currentTime, TOTAL_DURATION, progressAnim]);
 
   // Calculate current active step index based on current time
-  const activeStepIndex = totalSteps > 0 
+  const activeStepIndex = totalSteps > 0
     ? Math.min(Math.floor(currentTime / STEP_DURATION), totalSteps - 1)
     : 0;
 
@@ -139,6 +138,9 @@ const SmartCookingVideoModal = ({ visible, onClose, recipe }) => {
       );
     }
   };
+
+
+  if (!recipe) return null;
 
   return (
     <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
@@ -310,8 +312,8 @@ const SmartCookingVideoModal = ({ visible, onClose, recipe }) => {
                           {isActive
                             ? 'Đang hướng dẫn...'
                             : isPassed
-                            ? 'Đã hoàn thành'
-                            : `Bước ${index + 1}`}
+                              ? 'Đã hoàn thành'
+                              : `Bước ${index + 1}`}
                         </Text>
                         {isActive && <View style={styles.activePulseIndicator} />}
                       </View>

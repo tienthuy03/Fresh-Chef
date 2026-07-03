@@ -1,31 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  Image, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Platform, 
-  ActivityIndicator,
-  Modal,
-  TextInput,
-  Alert
-} from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Colors } from '@constants/Colors';
-import { useTranslation } from 'react-i18next';
-import { useGetMeQuery, useUpdateProfileMutation, useChangePasswordMutation } from '@redux/api/Auth';
-import { useGetGamificationProfileQuery, useAddTestXpMutation } from '@redux/api/Gamification';
-import { useDispatch } from 'react-redux';
-import { logOut } from '@redux/slices/authSlice';
-import SectionHeader from '@components/GlobalUI/SectionHeader';
 import PrimaryButton from '@components/GlobalUI/PrimaryButton';
-import { launchImageLibrary } from 'react-native-image-picker';
+import SectionHeader from '@components/GlobalUI/SectionHeader';
+import { Colors } from '@constants/Colors';
 import { BASE_URL } from '@constants/Config';
-import { apiService } from '@redux/apiService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useChangePasswordMutation, useGetMeQuery, useUpdateProfileMutation } from '@redux/api/Auth';
+import { useAddTestXpMutation, useGetGamificationProfileQuery } from '@redux/api/Gamification';
+import { apiService } from '@redux/apiService';
+import { logOut } from '@redux/slices/authSlice';
+import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import * as Animatable from 'react-native-animatable';
+import { launchImageLibrary } from 'react-native-image-picker';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useDispatch } from 'react-redux';
 
 
 
@@ -37,7 +36,7 @@ const ProfileScreen = ({ navigation }) => {
   const [addTestXp, { isLoading: isAddingXp }] = useAddTestXpMutation();
   const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation();
   const [changePassword, { isLoading: isChangingPassword }] = useChangePasswordMutation();
-  
+
   const user = profileData?.Data || {};
   const stats = user.Stats || { Followers: 0, Following: 0, Recipes: 0 };
   const gamificationProfile = gamificationData?.Data || null;
@@ -53,14 +52,14 @@ const ProfileScreen = ({ navigation }) => {
         const currentLevel = gamificationProfile.profile.level;
         const storedLevelKey = `LAST_SEEN_LEVEL_${user.id}`;
         const storedLevelStr = await AsyncStorage.getItem(storedLevelKey);
-        
+
         if (storedLevelStr !== null) {
           const storedLevel = parseInt(storedLevelStr, 10);
           if (currentLevel > storedLevel) {
             // Find newly earned badge corresponding to this level, or the latest earned badge
             const badges = gamificationProfile.earnedBadges || [];
-            const latestBadge = badges.find(b => b.conditionType === 'level' && b.conditionValue === currentLevel) || 
-                                (badges.length > 0 ? badges[badges.length - 1] : null);
+            const latestBadge = badges.find(b => b.conditionType === 'level' && b.conditionValue === currentLevel) ||
+              (badges.length > 0 ? badges[badges.length - 1] : null);
 
             setLevelUpInfo({
               level: currentLevel,
@@ -70,13 +69,16 @@ const ProfileScreen = ({ navigation }) => {
             setIsLevelUpModalVisible(true);
           }
         }
-        
+
         // Save the current level as the last seen level
         await AsyncStorage.setItem(storedLevelKey, currentLevel.toString());
       };
       checkLevelUp();
     }
-  }, [gamificationProfile?.profile?.level, user?.id]);
+  }, [gamificationProfile?.profile?.level,
+  gamificationProfile?.profile?.title,
+  gamificationProfile?.earnedBadges,
+  user?.id,]);
 
   // Modals visibility
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -152,7 +154,7 @@ const ProfileScreen = ({ navigation }) => {
         oldPassword: passwordForm.oldPassword,
         newPassword: passwordForm.newPassword
       }).unwrap();
-      
+
       setIsPasswordModalVisible(false);
       setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
       Alert.alert(t('success'), t('password_changed_success', 'Đổi mật khẩu thành công!'));
@@ -196,17 +198,17 @@ const ProfileScreen = ({ navigation }) => {
           <TouchableOpacity style={styles.settingsButton}>
             <Ionicons name="settings-outline" size={24} color={Colors.text} />
           </TouchableOpacity>
-          
+
           <View style={styles.profileInfo}>
             <View style={styles.avatarContainer}>
               {isUpdating ? (
                 <View style={[styles.avatar, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f0f0' }]}>
-                   <ActivityIndicator color={Colors.primary} />
+                  <ActivityIndicator color={Colors.primary} />
                 </View>
               ) : (
-                <Image 
-                  source={{ uri: getAvatarUri() }} 
-                  style={styles.avatar} 
+                <Image
+                  source={{ uri: getAvatarUri() }}
+                  style={styles.avatar}
                 />
               )}
               <TouchableOpacity style={styles.editAvatarButton} onPress={handleEditAvatar} disabled={isUpdating}>
@@ -215,7 +217,7 @@ const ProfileScreen = ({ navigation }) => {
             </View>
             <Text style={styles.userName}>{user.fullName || user.username}</Text>
             <Text style={styles.userEmail}>{user.email || 'No email provided'}</Text>
-            
+
             <View style={styles.statsRow}>
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>{stats.Recipes}</Text>
@@ -235,11 +237,11 @@ const ProfileScreen = ({ navigation }) => {
 
             {gamificationLoading && <ActivityIndicator color={Colors.primary} style={{ marginTop: 15 }} />}
             {gamificationError && (
-               <Text style={{ color: 'red', marginTop: 15, textAlign: 'center' }}>
-                 Lỗi tải XP: {JSON.stringify(gamificationError)}
-               </Text>
+              <Text style={{ color: 'red', marginTop: 15, textAlign: 'center' }}>
+                Lỗi tải XP: {JSON.stringify(gamificationError)}
+              </Text>
             )}
-            
+
             {gamificationProfile && (
               <View style={styles.gamificationCard}>
                 <View style={styles.gamificationHeader}>
@@ -249,10 +251,10 @@ const ProfileScreen = ({ navigation }) => {
                 <View style={styles.xpBarBackground}>
                   <View style={[styles.xpBarFill, { width: `${gamificationProfile.progress.percentComplete}%` }]} />
                 </View>
-                
+
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                  <TouchableOpacity 
-                    style={styles.testXpButton} 
+                  <TouchableOpacity
+                    style={styles.testXpButton}
                     onPress={async () => {
                       try {
                         await addTestXp(100).unwrap();
@@ -277,8 +279,8 @@ const ProfileScreen = ({ navigation }) => {
                     <Text style={styles.miniBadgesTitle}>{t('recent_badges', 'Huy hiệu của tôi:')}</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.miniBadgesList}>
                       {gamificationProfile.earnedBadges.map((badge, idx) => (
-                        <TouchableOpacity 
-                          key={idx} 
+                        <TouchableOpacity
+                          key={idx}
                           style={styles.miniBadgeItem}
                           onPress={() => navigation.navigate('Badges')}
                         >
@@ -296,9 +298,9 @@ const ProfileScreen = ({ navigation }) => {
               </View>
             )}
 
-            <PrimaryButton 
-              title="Chỉnh sửa hồ sơ" 
-              onPress={openEditModal} 
+            <PrimaryButton
+              title="Chỉnh sửa hồ sơ"
+              onPress={openEditModal}
               style={styles.editProfileButton}
               textStyle={styles.editProfileButtonText}
             />
@@ -314,29 +316,29 @@ const ProfileScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
           {user.preferences?.diets?.length > 0 ? (
-            <MenuItem 
-              icon="restaurant-outline" 
-              title="Chế độ ăn uống" 
-              subtitle={user.preferences.diets.join(', ')} 
-              color={Colors.primary} 
+            <MenuItem
+              icon="restaurant-outline"
+              title="Chế độ ăn uống"
+              subtitle={user.preferences.diets.join(', ')}
+              color={Colors.primary}
             />
           ) : (
-             <Text style={styles.emptyText}>Chưa thiết lập chế độ ăn</Text>
+            <Text style={styles.emptyText}>Chưa thiết lập chế độ ăn</Text>
           )}
           {user.preferences?.householdSize ? (
-            <MenuItem 
-              icon="people-outline" 
-              title="Khẩu phần gia đình" 
-              subtitle={`${user.preferences.householdSize} người`} 
-              color="#4ECDC4" 
+            <MenuItem
+              icon="people-outline"
+              title="Khẩu phần gia đình"
+              subtitle={`${user.preferences.householdSize} người`}
+              color="#4ECDC4"
             />
           ) : null}
           {user.preferences?.timeLimit ? (
-            <MenuItem 
-              icon="time-outline" 
-              title="Thời gian nấu nướng" 
-              subtitle={`${user.preferences.timeLimit}`} 
-              color="#FF9F43" 
+            <MenuItem
+              icon="time-outline"
+              title="Thời gian nấu nướng"
+              subtitle={`${user.preferences.timeLimit}`}
+              color="#FF9F43"
             />
           ) : null}
         </View>
@@ -352,10 +354,10 @@ const ProfileScreen = ({ navigation }) => {
 
         <View style={styles.section}>
           <SectionHeader title="Dinh dưỡng & Mục tiêu" />
-          <MenuItem 
-            icon="fitness-outline" 
-            title="Kế hoạch dinh dưỡng (Nutrition)" 
-            subtitle="Tính Calo, Macro & thực đơn lành mạnh" 
+          <MenuItem
+            icon="fitness-outline"
+            title="Kế hoạch dinh dưỡng (Nutrition)"
+            subtitle="Tính Calo, Macro & thực đơn lành mạnh"
             color="#20c997"
             onPress={() => navigation.navigate('NutritionPlanner')}
           />
@@ -363,10 +365,10 @@ const ProfileScreen = ({ navigation }) => {
 
         <View style={styles.section}>
           <SectionHeader title="Thành tích & Huy hiệu" />
-          <MenuItem 
-            icon="trophy-outline" 
-            title="Bộ sưu tập huy hiệu" 
-            subtitle="Xem toàn bộ huy hiệu đã mở khóa" 
+          <MenuItem
+            icon="trophy-outline"
+            title="Bộ sưu tập huy hiệu"
+            subtitle="Xem toàn bộ huy hiệu đã mở khóa"
             color="#FF9F43"
             onPress={() => navigation.navigate('Badges')}
           />
@@ -374,21 +376,21 @@ const ProfileScreen = ({ navigation }) => {
 
         <View style={styles.section}>
           <SectionHeader title="Tài khoản" />
-          <MenuItem 
-            icon="person-outline" 
-            title="Thông tin cá nhân" 
+          <MenuItem
+            icon="person-outline"
+            title="Thông tin cá nhân"
             onPress={openEditModal}
           />
-          <MenuItem 
-            icon="shield-checkmark-outline" 
-            title="Đổi mật khẩu" 
+          <MenuItem
+            icon="shield-checkmark-outline"
+            title="Đổi mật khẩu"
             onPress={() => setIsPasswordModalVisible(true)}
           />
         </View>
 
-        <PrimaryButton 
-          title="Đăng xuất" 
-          onPress={handleLogout} 
+        <PrimaryButton
+          title="Đăng xuất"
+          onPress={handleLogout}
           style={styles.logoutButton}
           textStyle={styles.logoutText}
           iconLeft={<Ionicons name="log-out-outline" size={22} color={Colors.error} />}
@@ -407,10 +409,10 @@ const ProfileScreen = ({ navigation }) => {
                 <Ionicons name="close" size={24} color={Colors.text} />
               </TouchableOpacity>
             </View>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Họ và tên</Text>
-              <TextInput 
+              <TextInput
                 style={styles.textInput}
                 value={editForm.fullName}
                 onChangeText={(v) => setEditForm(prev => ({ ...prev, fullName: v }))}
@@ -420,7 +422,7 @@ const ProfileScreen = ({ navigation }) => {
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Giới thiệu (Bio)</Text>
-              <TextInput 
+              <TextInput
                 style={[styles.textInput, { height: 100 }]}
                 value={editForm.bio}
                 onChangeText={(v) => setEditForm(prev => ({ ...prev, bio: v }))}
@@ -429,8 +431,8 @@ const ProfileScreen = ({ navigation }) => {
               />
             </View>
 
-            <PrimaryButton 
-              title="Cập nhật" 
+            <PrimaryButton
+              title="Cập nhật"
               onPress={handleUpdateProfile}
               isLoading={isUpdating}
               style={{ marginTop: 20 }}
@@ -449,10 +451,10 @@ const ProfileScreen = ({ navigation }) => {
                 <Ionicons name="close" size={24} color={Colors.text} />
               </TouchableOpacity>
             </View>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Mật khẩu cũ</Text>
-              <TextInput 
+              <TextInput
                 style={styles.textInput}
                 value={passwordForm.oldPassword}
                 onChangeText={(v) => setPasswordForm(prev => ({ ...prev, oldPassword: v }))}
@@ -463,7 +465,7 @@ const ProfileScreen = ({ navigation }) => {
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Mật khẩu mới</Text>
-              <TextInput 
+              <TextInput
                 style={styles.textInput}
                 value={passwordForm.newPassword}
                 onChangeText={(v) => setPasswordForm(prev => ({ ...prev, newPassword: v }))}
@@ -474,7 +476,7 @@ const ProfileScreen = ({ navigation }) => {
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Xác nhận mật khẩu mới</Text>
-              <TextInput 
+              <TextInput
                 style={styles.textInput}
                 value={passwordForm.confirmPassword}
                 onChangeText={(v) => setPasswordForm(prev => ({ ...prev, confirmPassword: v }))}
@@ -483,8 +485,8 @@ const ProfileScreen = ({ navigation }) => {
               />
             </View>
 
-            <PrimaryButton 
-              title="Đổi mật khẩu" 
+            <PrimaryButton
+              title="Đổi mật khẩu"
               onPress={handleChangePassword}
               isLoading={isChangingPassword}
               style={{ marginTop: 20 }}
@@ -499,10 +501,10 @@ const ProfileScreen = ({ navigation }) => {
           <Animatable.View animation="zoomInUp" duration={800} style={styles.levelUpContent}>
             {/* Confetti decoration */}
             <Animatable.Text animation="bounceInDown" delay={300} style={styles.congratsEmoji}>🎉 🌟 🥳 🌟 🎉</Animatable.Text>
-            
+
             <Text style={styles.levelUpSub}>{t('level_up_congrats', 'CHÚC MỪNG BẠN!')}</Text>
             <Text style={styles.levelUpTitle}>{t('level_up_title', 'THĂNG CẤP MỚI')}</Text>
-            
+
             <Animatable.View animation="pulse" easing="ease-out" iterationCount="infinite" style={styles.levelBadgeContainer}>
               <Text style={styles.levelBadgeText}>Lv. {levelUpInfo.level}</Text>
             </Animatable.View>
@@ -521,8 +523,8 @@ const ProfileScreen = ({ navigation }) => {
             )}
 
             <Animatable.View animation="fadeInUp" delay={1200}>
-              <TouchableOpacity 
-                style={styles.levelUpCloseButton} 
+              <TouchableOpacity
+                style={styles.levelUpCloseButton}
                 onPress={() => setIsLevelUpModalVisible(false)}
               >
                 <Text style={styles.levelUpCloseText}>{t('level_up_close', 'Tuyệt vời!')}</Text>

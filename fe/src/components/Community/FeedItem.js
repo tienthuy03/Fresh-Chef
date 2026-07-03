@@ -1,23 +1,21 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  ScrollView,
-  Dimensions,
-  StyleSheet,
-  Platform,
-  ActivityIndicator,
-  TextInput,
-} from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '@constants/Colors';
-import { useTranslation } from 'react-i18next';
 import { BASE_URL } from '@constants/Config';
+import { useNavigation } from '@react-navigation/native';
 import { useGetCommentsQuery } from '@redux/api/Community';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  ActivityIndicator,
+  Dimensions,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -50,6 +48,10 @@ const FeedItem = ({
     setActiveIndex(index);
   };
 
+  // const foodIcon = React.useMemo(
+  //   () => foodIcons[item.id % foodIcons.length],
+  //   [foodIcons, item.id],
+  // );
   const timeAgo = date => {
     const seconds = Math.floor((new Date() - new Date(date)) / 1000);
     let interval = seconds / 31536000;
@@ -65,19 +67,16 @@ const FeedItem = ({
     return Math.floor(seconds) + ` ${t('seconds_ago')}`;
   };
 
-  const foodIcons = [
-    'pizza',
-    'hamburger',
-    'ice-cream',
-    'food-apple',
-    'noodles',
-    'cake-variant',
-    'cheese',
-  ];
-  const foodIcon = React.useMemo(
-    () => foodIcons[item.id % foodIcons.length],
-    [item.id],
-  );
+  // const foodIcons = [
+  //   'pizza',
+  //   'hamburger',
+  //   'ice-cream',
+  //   'food-apple',
+  //   'noodles',
+  //   'cake-variant',
+  //   'cheese',
+  // ];
+
 
   return (
     <View style={styles.chefCard}>
@@ -156,7 +155,7 @@ const FeedItem = ({
       {/* Content Section - Styled like a Kitchen Note */}
       <View style={styles.noteSection}>
         {item.Recipe && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.recipeLink}
             onPress={() => navigation.navigate('RecipeDetail', { recipeId: item.Recipe.id })}
           >
@@ -164,7 +163,7 @@ const FeedItem = ({
               name="chef-hat"
               size={16}
               color={Colors.primary}
-              style={{marginRight: 5}}
+              style={{ marginRight: 5 }}
             />
             <Text style={styles.recipeLinkTitle}>{item.Recipe.title}</Text>
             <MaterialCommunityIcons
@@ -328,8 +327,8 @@ const FeedItem = ({
           <View style={styles.commentInputContainer}>
             <View style={styles.quickIconsRow}>
               {['😋', '🔥', '👩‍🍳', '🍲', '🥩', '🍰', '🍻'].map((emoji) => (
-                <TouchableOpacity 
-                  key={emoji} 
+                <TouchableOpacity
+                  key={emoji}
                   style={styles.quickIconBtn}
                   onPress={() => setCommentText(prev => prev + emoji)}
                 >
@@ -349,7 +348,7 @@ const FeedItem = ({
                 onChangeText={setCommentText}
                 multiline
               />
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.sendCommentBtn}
                 onPress={() => {
                   if (commentText.trim() && onComment) {

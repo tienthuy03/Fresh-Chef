@@ -134,7 +134,6 @@ export default StyleSheet.create({
   editProfileButton: {
     marginTop: 20,
     width: '80%',
-    backgroundColor: '#f5f5f5',
     paddingVertical: 12,
     borderRadius: 20,
     backgroundColor: Colors.background,

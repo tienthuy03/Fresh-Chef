@@ -102,7 +102,7 @@ const RecipeDetailScreen = () => {
         }
       ]);
     }
-  }, [recipe]);
+  }, [recipe, messages.length]);
 
   // Scroll to bottom when messages or typing status updates
   React.useEffect(() => {

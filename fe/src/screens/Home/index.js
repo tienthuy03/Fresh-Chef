@@ -1,29 +1,29 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TextInput,
-  Image,
-  FlatList,
-  TouchableOpacity,
-  Modal,
-  KeyboardAvoidingView,
-} from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import SectionHeader from '@components/GlobalUI/SectionHeader';
+import RecipeCard from '@components/Recipe/RecipeCard';
 import { Colors } from '@constants/Colors';
-import styles from './styles';
-import { useTranslation } from 'react-i18next';
+import { useNavigation } from '@react-navigation/native';
 import {
+  useAskAiAssistantMutation,
+  useGetFavoritesQuery,
   useGetTrendingRecipesQuery,
   useToggleFavoriteMutation,
-  useGetFavoritesQuery,
-  useAskAiAssistantMutation,
 } from '@redux/api/Recipes';
-import { ActivityIndicator } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import RecipeCard from '@components/Recipe/RecipeCard';
-import SectionHeader from '@components/GlobalUI/SectionHeader';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  ActivityIndicator,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Platform,
+} from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import styles from './styles';
 
 const FEATURED_RECIPES = [
   {
@@ -69,7 +69,7 @@ const HomeScreen = () => {
         }
       ]);
     }
-  }, []);
+  }, [messages.length]);
 
   // Scroll to bottom when messages or typing status updates
   React.useEffect(() => {
