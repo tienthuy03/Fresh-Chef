@@ -1,0 +1,36 @@
+name: React Native CI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: fe
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: fe/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Check versions
+        run: |
+          node -v
+          npm -v
+
+      - name: CI Success
+        run: echo "🎉 GitHub Actions chạy thành công"
